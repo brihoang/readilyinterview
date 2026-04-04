@@ -7,16 +7,24 @@ import type { Question } from "@/lib/store/types";
 const QuestionSchema = z.object({
   questions: z.array(
     z.object({
-      category: z.string().describe("Compliance category, e.g. 'Access Control', 'Privacy', 'Security'"),
-      text: z.string().describe("The full question text as written in the questionnaire"),
-      source: z.string().describe("Section reference, e.g. 'Section 3.2' or 'Q12'"),
-    })
+      category: z
+        .string()
+        .describe(
+          "Compliance category, e.g. 'Access Control', 'Privacy', 'Security'",
+        ),
+      text: z
+        .string()
+        .describe("The full question text as written in the questionnaire"),
+      source: z
+        .string()
+        .describe("Section reference, e.g. 'Section 3.2' or 'Q12'"),
+    }),
   ),
 });
 
 export async function extractQuestionsFromText(
   pdfText: string,
-  auditId: string
+  auditId: string,
 ): Promise<Question[]> {
   const { object } = await generateObject({
     model: google(MODEL),

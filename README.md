@@ -37,14 +37,14 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 14 (App Router) |
-| UI | Tailwind CSS + shadcn/ui + Lucide |
-| AI | Gemini 2.0 Flash via Vercel AI SDK |
-| PDF Parsing | pdf-parse |
-| Retrieval | TF-IDF keyword search |
-| State | In-memory singleton (server) + React state (client) |
+| Layer       | Choice                                              |
+| ----------- | --------------------------------------------------- |
+| Framework   | Next.js 14 (App Router)                             |
+| UI          | Tailwind CSS + shadcn/ui + Lucide                   |
+| AI          | Gemini 2.0 Flash via Vercel AI SDK                  |
+| PDF Parsing | pdf-parse                                           |
+| Retrieval   | TF-IDF keyword search                               |
+| State       | In-memory singleton (server) + React state (client) |
 
 ## Project Structure
 

@@ -4,11 +4,15 @@ import { ensureSeeded } from "@/lib/seed";
 import { evaluateQuestion } from "@/lib/ai/evaluateQuestion";
 import { retrieveTopChunks } from "@/lib/retrieval/keywordSearch";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   await ensureSeeded();
 
   const audit = store.getAudit(params.id);
-  if (!audit) return NextResponse.json({ error: "Audit not found" }, { status: 404 });
+  if (!audit)
+    return NextResponse.json({ error: "Audit not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const runMode: "all" | "failed-only" = body.runMode ?? "all";
@@ -22,7 +26,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       : audit.questions;
 
   if (questionsToRun.length === 0) {
-    return NextResponse.json({ error: "No questions to evaluate" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No questions to evaluate" },
+      { status: 400 },
+    );
   }
 
   store.updateAudit(params.id, {
@@ -44,7 +51,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       try {
         for (const question of questionsToRun) {
           const relevantChunks = retrieveTopChunks(question.text, allChunks, 6);
-          const result = await evaluateQuestion(question, relevantChunks, docTitleMap);
+          const result = await evaluateQuestion(
+            question,
+            relevantChunks,
+            docTitleMap,
+          );
 
           // Persist result immediately
           const currentAudit = store.getAudit(params.id)!;
@@ -57,13 +68,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         // Mark complete
         store.updateAudit(params.id, { status: "complete" });
-        controller.enqueue(encoder.encode(JSON.stringify({ done: true }) + "\n"));
+        controller.enqueue(
+          encoder.encode(JSON.stringify({ done: true }) + "\n"),
+        );
         controller.close();
       } catch (err) {
         console.error("Evaluation error:", err);
         store.updateAudit(params.id, { status: "complete" });
         controller.enqueue(
-          encoder.encode(JSON.stringify({ error: String(err) }) + "\n")
+          encoder.encode(JSON.stringify({ error: String(err) }) + "\n"),
         );
         controller.close();
       }

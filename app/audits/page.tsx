@@ -1,17 +1,35 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Plus, ClipboardList, Building2, Calendar, ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { AuditSummary, ComplianceFramework } from "@/lib/store/types"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  ClipboardList,
+  Building2,
+  Calendar,
+  ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
 const FRAMEWORKS: ComplianceFramework[] = [
   "HIPAA",
@@ -20,9 +38,12 @@ const FRAMEWORKS: ComplianceFramework[] = [
   "NCQA",
   "State Health Department",
   "Other",
-]
+];
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info" | "warning" | "secondary" }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "success" | "info" | "warning" | "secondary" }
+> = {
   idle: { label: "Draft", variant: "secondary" },
   uploading: { label: "Uploading", variant: "info" },
   extracting: { label: "Extracting", variant: "info" },
@@ -30,48 +51,50 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info"
   ready: { label: "Ready", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
   complete: { label: "Complete", variant: "success" },
-}
+};
 
 export default function AuditsPage() {
-  const router = useRouter()
-  const [audits, setAudits] = useState<AuditSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [open, setOpen] = useState(false)
+  const router = useRouter();
+  const [audits, setAudits] = useState<AuditSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     organization: "",
     framework: "" as ComplianceFramework | "",
     targetDate: "",
     notes: "",
-  })
+  });
 
   useEffect(() => {
     fetch("/api/audits")
       .then((r) => r.json())
       .then((d) => setAudits(d.audits ?? []))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   async function handleCreate() {
-    if (!form.name || !form.organization || !form.framework) return
-    setCreating(true)
+    if (!form.name || !form.organization || !form.framework) return;
+    setCreating(true);
     try {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      })
-      const data = await res.json()
-      router.push(`/audits/${data.audit.id}`)
+      });
+      const data = await res.json();
+      router.push(`/audits/${data.audit.id}`);
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
   }
 
   function getComplianceScore(a: AuditSummary) {
-    if (a.questionCount === 0) return null
-    return Math.round(((a.passCount + a.partialCount * 0.5) / a.questionCount) * 100)
+    if (a.questionCount === 0) return null;
+    return Math.round(
+      ((a.passCount + a.partialCount * 0.5) / a.questionCount) * 100,
+    );
   }
 
   return (
@@ -94,7 +117,10 @@ export default function AuditsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-xl border bg-white animate-pulse" />
+            <div
+              key={i}
+              className="h-24 rounded-xl border bg-white animate-pulse"
+            />
           ))}
         </div>
       ) : audits.length === 0 ? (
@@ -114,8 +140,8 @@ export default function AuditsPage() {
       ) : (
         <div className="space-y-3">
           {audits.map((audit) => {
-            const cfg = STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle
-            const score = getComplianceScore(audit)
+            const cfg = STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+            const score = getComplianceScore(audit);
             return (
               <Card
                 key={audit.id}
@@ -125,7 +151,9 @@ export default function AuditsPage() {
                 <CardContent className="flex items-center gap-4 p-5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-slate-800 truncate">{audit.name}</h3>
+                      <h3 className="font-semibold text-slate-800 truncate">
+                        {audit.name}
+                      </h3>
                       <Badge variant={cfg.variant}>{cfg.label}</Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -149,13 +177,21 @@ export default function AuditsPage() {
                       <div className="text-center">
                         {score !== null ? (
                           <>
-                            <p className="text-2xl font-bold text-slate-800">{score}%</p>
-                            <p className="text-xs text-muted-foreground">Compliance</p>
+                            <p className="text-2xl font-bold text-slate-800">
+                              {score}%
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Compliance
+                            </p>
                           </>
                         ) : (
                           <>
-                            <p className="text-2xl font-bold text-slate-800">{audit.questionCount}</p>
-                            <p className="text-xs text-muted-foreground">Questions</p>
+                            <p className="text-2xl font-bold text-slate-800">
+                              {audit.questionCount}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Questions
+                            </p>
                           </>
                         )}
                       </div>
@@ -176,7 +212,7 @@ export default function AuditsPage() {
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       )}
@@ -193,7 +229,9 @@ export default function AuditsPage() {
               <Input
                 placeholder="e.g. Q2 2026 HIPAA Readiness Review"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-1.5">
@@ -201,21 +239,30 @@ export default function AuditsPage() {
               <Input
                 placeholder="e.g. Lakewood Regional Medical Center"
                 value={form.organization}
-                onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, organization: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-1.5">
               <Label>Compliance Framework *</Label>
               <Select
                 value={form.framework}
-                onValueChange={(v) => setForm((f) => ({ ...f, framework: v as ComplianceFramework }))}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    framework: v as ComplianceFramework,
+                  }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select framework..." />
                 </SelectTrigger>
                 <SelectContent>
                   {FRAMEWORKS.map((fw) => (
-                    <SelectItem key={fw} value={fw}>{fw}</SelectItem>
+                    <SelectItem key={fw} value={fw}>
+                      {fw}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -225,7 +272,9 @@ export default function AuditsPage() {
               <Input
                 type="date"
                 value={form.targetDate}
-                onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, targetDate: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-1.5">
@@ -234,15 +283,21 @@ export default function AuditsPage() {
                 placeholder="Any additional context..."
                 rows={3}
                 value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, notes: e.target.value }))
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
             <Button
               onClick={handleCreate}
-              disabled={creating || !form.name || !form.organization || !form.framework}
+              disabled={
+                creating || !form.name || !form.organization || !form.framework
+              }
             >
               {creating ? "Creating..." : "Create Audit"}
             </Button>
@@ -250,5 +305,5 @@ export default function AuditsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

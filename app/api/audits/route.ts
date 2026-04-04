@@ -15,10 +15,16 @@ export async function POST(req: NextRequest) {
   if (!name || !organization || !framework) {
     return NextResponse.json(
       { error: "name, organization, and framework are required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const audit = store.createAudit({ name, organization, framework, targetDate: targetDate ?? "", notes: notes ?? "" });
+  const audit = store.createAudit({
+    name,
+    organization,
+    framework,
+    targetDate: targetDate ?? "",
+    notes: notes ?? "",
+  });
   return NextResponse.json({ audit }, { status: 201 });
 }

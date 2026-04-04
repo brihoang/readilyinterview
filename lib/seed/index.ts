@@ -49,9 +49,7 @@ export async function ensureSeeded(): Promise<void> {
 
     const folders = fs
       .readdirSync(POLICIES_DIR)
-      .filter((f) =>
-        fs.statSync(path.join(POLICIES_DIR, f)).isDirectory()
-      );
+      .filter((f) => fs.statSync(path.join(POLICIES_DIR, f)).isDirectory());
 
     let loaded = 0;
     for (const folder of folders) {

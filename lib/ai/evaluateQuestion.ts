@@ -6,25 +6,38 @@ import type { Question, PolicyChunk, QuestionResult } from "@/lib/store/types";
 const EvalSchema = z.object({
   verdict: z.enum(["pass", "fail", "partial"]),
   confidence: z.number().min(0).max(100),
-  evidenceText: z.string().describe("Direct quote from the policy that supports the verdict. Empty string if no relevant policy found."),
-  sourceDocumentTitle: z.string().describe("Title of the policy document where evidence was found. Empty string if none."),
-  sourceSectionTitle: z.string().describe("Section title within the document. Empty string if none."),
-  reasoning: z.string().describe("1-3 sentences explaining why this verdict was reached."),
+  evidenceText: z
+    .string()
+    .describe(
+      "Direct quote from the policy that supports the verdict. Empty string if no relevant policy found.",
+    ),
+  sourceDocumentTitle: z
+    .string()
+    .describe(
+      "Title of the policy document where evidence was found. Empty string if none.",
+    ),
+  sourceSectionTitle: z
+    .string()
+    .describe("Section title within the document. Empty string if none."),
+  reasoning: z
+    .string()
+    .describe("1-3 sentences explaining why this verdict was reached."),
 });
 
 export async function evaluateQuestion(
   question: Question,
   relevantChunks: PolicyChunk[],
-  documentTitleMap: Record<string, string>
+  documentTitleMap: Record<string, string>,
 ): Promise<QuestionResult> {
-  const policyContext = relevantChunks.length > 0
-    ? relevantChunks
-        .map((c, i) => {
-          const docTitle = documentTitleMap[c.documentId] ?? c.documentId;
-          return `[Policy ${i + 1}: ${docTitle} — ${c.sectionTitle}]\n${c.text}`;
-        })
-        .join("\n\n---\n\n")
-    : "No relevant policy documents found.";
+  const policyContext =
+    relevantChunks.length > 0
+      ? relevantChunks
+          .map((c, i) => {
+            const docTitle = documentTitleMap[c.documentId] ?? c.documentId;
+            return `[Policy ${i + 1}: ${docTitle} — ${c.sectionTitle}]\n${c.text}`;
+          })
+          .join("\n\n---\n\n")
+      : "No relevant policy documents found.";
 
   const { object } = await generateObject({
     model: google(MODEL),
@@ -46,7 +59,9 @@ If no relevant policy was found, set evidenceText to empty string and verdict to
   let sourceDocumentId = "";
   if (object.evidenceText && relevantChunks.length > 0) {
     const match = relevantChunks.find((c) =>
-      c.text.toLowerCase().includes(object.evidenceText.slice(0, 50).toLowerCase())
+      c.text
+        .toLowerCase()
+        .includes(object.evidenceText.slice(0, 50).toLowerCase()),
     );
     sourceDocumentId = match?.documentId ?? relevantChunks[0].documentId;
   }

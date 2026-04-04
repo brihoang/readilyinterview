@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Sidebar } from "./Sidebar"
-import { UserBadge } from "./UserBadge"
+import { Sidebar } from "./Sidebar";
+import { UserBadge } from "./UserBadge";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -13,10 +13,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <UserBadge />
         </header>
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
-  )
+  );
 }

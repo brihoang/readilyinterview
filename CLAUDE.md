@@ -12,6 +12,7 @@ npm run build      # production build
 ```
 
 Requires `.env.local` with:
+
 ```
 GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
 ```
@@ -30,15 +31,15 @@ Get a key at https://aistudio.google.com/apikey
 
 ## Key files
 
-| File | Purpose |
-|---|---|
-| `lib/store/types.ts` | All TypeScript interfaces — start here |
-| `lib/store/index.ts` | In-memory server store singleton |
-| `lib/seed/index.ts` | Loads PDFs from `policies/` into the store on first request |
-| `lib/ai/extractQuestions.ts` | Gemini call to extract questions from questionnaire PDF |
-| `lib/ai/evaluateQuestion.ts` | Gemini call to evaluate one question against policy chunks |
+| File                                    | Purpose                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| `lib/store/types.ts`                    | All TypeScript interfaces — start here                                 |
+| `lib/store/index.ts`                    | In-memory server store singleton                                       |
+| `lib/seed/index.ts`                     | Loads PDFs from `policies/` into the store on first request            |
+| `lib/ai/extractQuestions.ts`            | Gemini call to extract questions from questionnaire PDF                |
+| `lib/ai/evaluateQuestion.ts`            | Gemini call to evaluate one question against policy chunks             |
 | `app/api/audits/[id]/evaluate/route.ts` | Streaming NDJSON route — evaluates all questions, streams results back |
-| `components/audit/PrepWorkspace.tsx` | Core state machine (idle→extracting→review→ready→evaluating→complete) |
+| `components/audit/PrepWorkspace.tsx`    | Core state machine (idle→extracting→review→ready→evaluating→complete)  |
 
 ## Policy library
 

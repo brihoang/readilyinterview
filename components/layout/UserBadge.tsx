@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,14 +8,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { User, Settings, LogOut } from "lucide-react";
 
 const USER = {
-  name: "Sarah Chen",
+  name: "Brian Hoang",
   title: "Compliance Officer",
-  initials: "SC",
-}
+  initials: "BH",
+};
 
 export function UserBadge() {
   return (
@@ -37,7 +37,9 @@ export function UserBadge() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{USER.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{USER.title}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {USER.title}
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -56,5 +58,5 @@ export function UserBadge() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
