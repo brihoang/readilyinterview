@@ -89,6 +89,10 @@ class InMemoryStore {
   deleteAudit(id: string): boolean {
     return this.audits.delete(id);
   }
+
+  clearAudits(): void {
+    this.audits.clear();
+  }
 }
 
 // Module-level singleton
