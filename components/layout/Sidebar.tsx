@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, FolderOpen, ShieldCheck } from "lucide-react";
+import { ClipboardList, FolderOpen, ShieldCheck, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/audits", label: "Audits", icon: ClipboardList },
+  { href: "/tasks", label: "Outstanding Tasks", icon: ListTodo },
   { href: "/policies", label: "Policy Library", icon: FolderOpen },
 ];
 
@@ -16,7 +17,7 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 border-r bg-white flex flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b">
+      <div className="h-14 flex items-center gap-2.5 px-5 border-b shrink-0">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <span className="font-bold text-lg tracking-tight text-slate-800">
           Readily
