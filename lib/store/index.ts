@@ -9,7 +9,8 @@ class InMemoryStore {
 
   addPolicyDocument(doc: Omit<PolicyDocument, "id">): PolicyDocument {
     const id = nanoid();
-    const full = { ...doc, id };
+    const chunks = doc.chunks.map((c) => ({ ...c, documentId: id }));
+    const full = { ...doc, id, chunks };
     this.policyDocuments.set(id, full);
     return full;
   }

@@ -5,20 +5,12 @@ import type { Question, PolicyChunk, QuestionResult } from "@/lib/store/types";
 
 const EvalSchema = z.object({
   verdict: z.enum(["pass", "fail", "partial"]),
-  confidence: z.number().min(0).max(100),
+  confidence: z.number().min(0).max(1),
   evidenceText: z
     .string()
     .describe(
       "Direct quote from the policy that supports the verdict. Empty string if no relevant policy found.",
     ),
-  sourceDocumentTitle: z
-    .string()
-    .describe(
-      "Title of the policy document where evidence was found. Empty string if none.",
-    ),
-  sourceSectionTitle: z
-    .string()
-    .describe("Section title within the document. Empty string if none."),
   reasoning: z
     .string()
     .describe("1-3 sentences explaining why this verdict was reached."),
@@ -55,16 +47,23 @@ If no relevant policy was found, set evidenceText to empty string and verdict to
     prompt: `AUDIT QUESTION (${question.category}):\n${question.text}\n\nRELEVANT POLICY EXCERPTS:\n${policyContext}`,
   });
 
-  // Find which document contained the evidence
-  let sourceDocumentId = "";
+  // Find which chunk contained the evidence
+  let matchedChunk: PolicyChunk | undefined;
   if (object.evidenceText && relevantChunks.length > 0) {
-    const match = relevantChunks.find((c) =>
+    matchedChunk = relevantChunks.find((c) =>
       c.text
         .toLowerCase()
         .includes(object.evidenceText.slice(0, 50).toLowerCase()),
-    );
-    sourceDocumentId = match?.documentId ?? relevantChunks[0].documentId;
+    ) ?? relevantChunks[0];
+  } else if (relevantChunks.length > 0) {
+    matchedChunk = relevantChunks[0];
   }
+
+  const sourceDocumentId = matchedChunk?.documentId ?? "";
+  const sourceDocumentTitle = sourceDocumentId
+    ? (documentTitleMap[sourceDocumentId] ?? sourceDocumentId)
+    : "";
+  const sourceSectionTitle = matchedChunk?.sectionTitle ?? "";
 
   return {
     questionId: question.id,
@@ -72,8 +71,8 @@ If no relevant policy was found, set evidenceText to empty string and verdict to
     confidence: object.confidence,
     evidenceText: object.evidenceText,
     sourceDocumentId,
-    sourceDocumentTitle: object.sourceDocumentTitle,
-    sourceSectionTitle: object.sourceSectionTitle,
+    sourceDocumentTitle,
+    sourceSectionTitle,
     reasoning: object.reasoning,
     evaluatedAt: new Date().toISOString(),
   };

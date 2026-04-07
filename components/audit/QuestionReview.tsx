@@ -82,7 +82,7 @@ export function QuestionReview({
               </div>
               <textarea
                 className="w-full text-sm text-slate-700 resize-none bg-transparent focus:outline-none focus:ring-1 focus:ring-primary rounded p-1 -m-1"
-                rows={2}
+                rows={4}
                 value={q.text}
                 onChange={(e) => updateQuestion(q.id, e.target.value)}
               />

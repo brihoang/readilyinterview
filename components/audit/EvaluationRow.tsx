@@ -94,7 +94,7 @@ export function EvaluationRow({
             )}
             {result && typeof result.confidence === "number" && (
               <span className="text-xs text-muted-foreground ml-auto">
-                {result.confidence}% confidence
+                {Math.round(result.confidence * 100)}% confidence
               </span>
             )}
           </div>

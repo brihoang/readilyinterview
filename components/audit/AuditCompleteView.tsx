@@ -47,6 +47,7 @@ export function AuditCompleteView({
   onRerun,
 }: Props) {
   const [showRerunModal, setShowRerunModal] = useState(false);
+  const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
 
   const markedQuestions = questions.filter(
     (q) => liveResults[q.id]?.markedCompliant,
@@ -230,7 +231,10 @@ export function AuditCompleteView({
 
       {/* All-marked modal */}
       {allMarked && !showRerunModal && (
-        <Dialog open={allMarked} onOpenChange={() => {}}>
+        <Dialog
+          open={!allMarkedDismissed}
+          onOpenChange={(open) => !open && setAllMarkedDismissed(true)}
+        >
           <DialogContent className="sm:max-w-sm text-center">
             <DialogHeader>
               <DialogTitle className="text-center">
@@ -241,10 +245,18 @@ export function AuditCompleteView({
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-2 py-2">
-              <Button onClick={() => setShowRerunModal(true)}>
+              <Button
+                onClick={() => {
+                  setAllMarkedDismissed(true);
+                  setShowRerunModal(true);
+                }}
+              >
                 Re-run Audit
               </Button>
-              <Button variant="ghost" onClick={() => {}}>
+              <Button
+                variant="ghost"
+                onClick={() => setAllMarkedDismissed(true)}
+              >
                 Not yet
               </Button>
             </div>
