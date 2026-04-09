@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
 
 export async function GET() {
+  await store.ensureAuditsLoaded();
   return NextResponse.json({ audits: store.getAuditSummaries() });
 }
 
 export async function POST(req: NextRequest) {
+  await store.ensureAuditsLoaded();
   const body = await req.json();
   const { name, organization, framework, targetDate, notes } = body;
 
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const audit = store.createAudit({
+  const audit = await store.createAudit({
     name,
     organization,
     framework,

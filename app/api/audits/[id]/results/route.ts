@@ -6,6 +6,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  await store.ensureAuditsLoaded();
   const audit = store.getAudit(params.id);
   if (!audit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -14,7 +15,7 @@ export async function PATCH(
   if (!existing)
     return NextResponse.json({ error: "Result not found" }, { status: 404 });
 
-  const updated = store.updateAudit(params.id, {
+  const updated = await store.updateAudit(params.id, {
     results: {
       ...audit.results,
       [questionId]: {

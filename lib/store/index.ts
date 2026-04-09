@@ -1,9 +1,86 @@
 import { nanoid } from "nanoid";
 import type { Audit, PolicyDocument, PolicyChunk, AuditSummary } from "./types";
 
+// Redis persistence via Upstash — graceful no-op when env vars are absent (local dev)
+function getRedis() {
+  if (!process.env.UPSTASH_REDIS_REST_URL) return null;
+  const { Redis } = require("@upstash/redis");
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+}
+
+async function kvWrite(id: string, audit: Audit): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`audit:${id}`, JSON.stringify(audit));
+    await redis.sadd("audit_ids", id);
+  } catch (e) {
+    console.warn("[store] Redis write failed:", e);
+  }
+}
+
+async function kvRemove(id: string): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.del(`audit:${id}`);
+    await redis.srem("audit_ids", id);
+  } catch (e) {
+    console.warn("[store] Redis delete failed:", e);
+  }
+}
+
+async function kvClear(): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    const ids: string[] = await redis.smembers("audit_ids");
+    if (ids.length > 0) {
+      await Promise.all(ids.map((id) => redis.del(`audit:${id}`)));
+    }
+    await redis.del("audit_ids");
+  } catch (e) {
+    console.warn("[store] Redis clear failed:", e);
+  }
+}
+
 class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
+  private auditsLoaded = false;
+  private auditsLoading = false;
+
+  // Load audits from Redis on cold start
+  async ensureAuditsLoaded(): Promise<void> {
+    if (this.auditsLoaded || this.auditsLoading) return;
+    const redis = getRedis();
+    if (!redis) {
+      this.auditsLoaded = true;
+      return;
+    }
+    this.auditsLoading = true;
+    try {
+      const ids: string[] = await redis.smembers("audit_ids");
+      const raw = await Promise.all(
+        ids.map((id) => redis.get(`audit:${id}`)),
+      );
+      for (const entry of raw) {
+        if (!entry) continue;
+        const audit: Audit =
+          typeof entry === "string" ? JSON.parse(entry) : entry;
+        this.audits.set(audit.id, audit);
+      }
+      console.log(`[store] Loaded ${this.audits.size} audits from Redis`);
+    } catch (e) {
+      console.warn("[store] Redis load failed, continuing with empty store:", e);
+    } finally {
+      this.auditsLoaded = true;
+      this.auditsLoading = false;
+    }
+  }
 
   // --- Policy Documents ---
 
@@ -33,13 +110,13 @@ class InMemoryStore {
 
   // --- Audits ---
 
-  createAudit(data: {
+  async createAudit(data: {
     name: string;
     organization: string;
     framework: Audit["framework"];
     targetDate: string;
     notes: string;
-  }): Audit {
+  }): Promise<Audit> {
     const id = nanoid();
     const audit: Audit = {
       id,
@@ -52,6 +129,7 @@ class InMemoryStore {
       iterationCount: 0,
     };
     this.audits.set(id, audit);
+    await kvWrite(id, audit);
     return audit;
   }
 
@@ -79,20 +157,27 @@ class InMemoryStore {
     });
   }
 
-  updateAudit(id: string, updates: Partial<Audit>): Audit | undefined {
+  async updateAudit(
+    id: string,
+    updates: Partial<Audit>,
+  ): Promise<Audit | undefined> {
     const audit = this.audits.get(id);
     if (!audit) return undefined;
     const updated = { ...audit, ...updates };
     this.audits.set(id, updated);
+    await kvWrite(id, updated);
     return updated;
   }
 
-  deleteAudit(id: string): boolean {
-    return this.audits.delete(id);
+  async deleteAudit(id: string): Promise<boolean> {
+    const deleted = this.audits.delete(id);
+    await kvRemove(id);
+    return deleted;
   }
 
-  clearAudits(): void {
+  async clearAudits(): Promise<void> {
     this.audits.clear();
+    await kvClear();
   }
 }
 

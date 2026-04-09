@@ -4,10 +4,13 @@ import { ensureSeeded } from "@/lib/seed";
 import { evaluateQuestion } from "@/lib/ai/evaluateQuestion";
 import { retrieveTopChunks } from "@/lib/retrieval/keywordSearch";
 
+export const maxDuration = 300; // seconds — requires Vercel Pro; on Hobby capped at 10s
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  await store.ensureAuditsLoaded();
   await ensureSeeded();
 
   const audit = store.getAudit(params.id);
@@ -32,7 +35,7 @@ export async function POST(
     );
   }
 
-  store.updateAudit(params.id, {
+  await store.updateAudit(params.id, {
     status: "evaluating",
     iterationCount: audit.iterationCount + 1,
     runMode,
@@ -59,7 +62,7 @@ export async function POST(
 
           // Persist result immediately
           const currentAudit = store.getAudit(params.id)!;
-          store.updateAudit(params.id, {
+          await store.updateAudit(params.id, {
             results: { ...currentAudit.results, [question.id]: result },
           });
 
@@ -67,14 +70,14 @@ export async function POST(
         }
 
         // Mark complete
-        store.updateAudit(params.id, { status: "complete" });
+        await store.updateAudit(params.id, { status: "complete" });
         controller.enqueue(
           encoder.encode(JSON.stringify({ done: true }) + "\n"),
         );
         controller.close();
       } catch (err) {
         console.error("Evaluation error:", err);
-        store.updateAudit(params.id, { status: "complete" });
+        await store.updateAudit(params.id, { status: "complete" });
         controller.enqueue(
           encoder.encode(JSON.stringify({ error: String(err) }) + "\n"),
         );

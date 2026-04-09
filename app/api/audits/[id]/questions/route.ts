@@ -6,10 +6,14 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  await store.ensureAuditsLoaded();
   const audit = store.getAudit(params.id);
   if (!audit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { questions } = await req.json();
-  const updated = store.updateAudit(params.id, { questions, status: "ready" });
+  const updated = await store.updateAudit(params.id, {
+    questions,
+    status: "ready",
+  });
   return NextResponse.json({ audit: updated });
 }
