@@ -37,9 +37,7 @@ const verdictConfig: Record<
     label: "Partial",
   },
   pending: {
-    icon: (
-      <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-    ),
+    icon: <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />,
     color: "text-muted-foreground",
     bg: "bg-white",
     label: "Pending",
@@ -141,9 +139,6 @@ export function EvaluationRow({
                 </blockquote>
                 <p className="text-xs text-muted-foreground mt-1.5">
                   {result.sourceDocumentTitle}
-                  {result.sourceSectionTitle
-                    ? ` — ${result.sourceSectionTitle}`
-                    : ""}
                 </p>
               </div>
             )}
