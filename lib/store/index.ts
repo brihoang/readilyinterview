@@ -96,9 +96,7 @@ class InMemoryStore {
   }
 }
 
-// Module-level singleton
+// Module-level singleton — persists across requests within the same warm instance
 const globalForStore = globalThis as unknown as { store?: InMemoryStore };
 export const store = globalForStore.store ?? new InMemoryStore();
-if (process.env.NODE_ENV !== "production") {
-  globalForStore.store = store;
-}
+globalForStore.store = store;
