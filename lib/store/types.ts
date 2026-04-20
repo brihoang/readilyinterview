@@ -108,6 +108,7 @@ export interface AuditSummary {
   passCount: number;
   failCount: number;
   partialCount: number;
+  markedCompliantCount: number;
   iterationCount: number;
   archivedBy?: string;
   archivedAt?: string;

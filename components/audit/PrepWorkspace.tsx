@@ -193,9 +193,12 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
     currentStatus === "complete" && failCount === 0 && allResults.length > 0;
   const allMarked =
     currentStatus === "complete" &&
-    allResults.filter((r) => r.verdict !== "pass" && !r.markedCompliant)
-      .length === 0 &&
-    allResults.length > 0;
+    questions.length > 0 &&
+    questions.every((q) => {
+      const r = liveResults[q.id];
+      if (!r) return false;
+      return r.verdict === "pass" || r.markedCompliant;
+    });
 
   // ── Render ────────────────────────────────────────────────────
 

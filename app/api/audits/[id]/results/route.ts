@@ -11,9 +11,17 @@ export async function PATCH(
   if (!audit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { questionId, markedCompliant } = await req.json();
-  const existing = audit.results[questionId];
-  if (!existing)
-    return NextResponse.json({ error: "Result not found" }, { status: 404 });
+  const existing = audit.results[questionId] ?? {
+    questionId,
+    verdict: "pending" as const,
+    confidence: 0,
+    evidenceText: "",
+    sourceDocumentId: "",
+    sourceDocumentTitle: "",
+    sourceSectionTitle: "",
+    reasoning: "Not AI-evaluated",
+    evaluatedAt: new Date().toISOString(),
+  };
 
   const updated = await store.updateAudit(params.id, {
     results: {

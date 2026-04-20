@@ -30,6 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
 const FRAMEWORKS: ComplianceFramework[] = [
@@ -57,8 +63,10 @@ const STATUS_CONFIG: Record<
 };
 
 function getDisplayStatus(audit: AuditSummary) {
-  if (audit.status === "complete" && (audit.failCount > 0 || audit.partialCount > 0)) {
-    return STATUS_CONFIG.needs_review;
+  if (audit.status === "complete") {
+    const totalFailing = audit.failCount + audit.partialCount;
+    const unresolved = totalFailing - (audit.markedCompliantCount ?? 0);
+    if (unresolved > 0) return STATUS_CONFIG.needs_review;
   }
   return STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
 }
@@ -102,8 +110,10 @@ export default function AuditsPage() {
 
   function getComplianceScore(a: AuditSummary) {
     if (a.questionCount === 0) return null;
+
+    if (a.status === "archived") return 100; // archived audits are considered fully compliant
     return Math.round(
-      ((a.passCount + a.partialCount * 0.5) / a.questionCount) * 100,
+      ((a.passCount + (a.markedCompliantCount ?? 0)) / a.questionCount) * 100,
     );
   }
 
@@ -188,18 +198,39 @@ export default function AuditsPage() {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6 shrink-0">
+                  <div className="flex items-center gap-4 shrink-0">
                     {audit.questionCount > 0 && (
                       <div className="text-center">
                         {score !== null ? (
-                          <>
-                            <p className="text-2xl font-bold text-slate-800">
-                              {score}%
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Compliance
-                            </p>
-                          </>
+                          <TooltipProvider>
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-start gap-0.5">
+                                <p className="text-2xl font-bold text-slate-800">
+                                  {score}%
+                                </p>
+                                {audit.status === "archived" &&
+                                  audit.passCount !== audit.questionCount && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-amber-500 text-xs font-semibold mt-0.5 cursor-default">
+                                          *
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        className="max-w-xs text-xs"
+                                      >
+                                        At least one question was manually
+                                        marked compliant without AI verification
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Compliance
+                              </p>
+                            </div>
+                          </TooltipProvider>
                         ) : (
                           <>
                             <p className="text-2xl font-bold text-slate-800">
@@ -210,18 +241,6 @@ export default function AuditsPage() {
                             </p>
                           </>
                         )}
-                      </div>
-                    )}
-                    {score !== null && (
-                      <div className="flex gap-3 text-xs">
-                        <span className="flex items-center gap-1 text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          {audit.passCount} pass
-                        </span>
-                        <span className="flex items-center gap-1 text-red-700">
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                          {audit.failCount} fail
-                        </span>
                       </div>
                     )}
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />

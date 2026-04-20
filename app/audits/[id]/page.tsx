@@ -41,8 +41,21 @@ const STATUS_CONFIG: Record<
   review: { label: "In Review", variant: "warning" },
   ready: { label: "Ready", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
-  complete: { label: "Complete", variant: "success" },
+  complete: { label: "AI Verified", variant: "success" },
+  complete_needs_review: { label: "Needs Review", variant: "warning" },
+  archived: { label: "Signed Off", variant: "success" },
 };
+
+function getDisplayStatus(audit: Audit) {
+  if (audit.status === "complete") {
+    const results = Object.values(audit.results);
+    const hasUnresolved = results.some(
+      (r) => (r.verdict === "fail" || r.verdict === "partial") && !r.markedCompliant
+    );
+    if (hasUnresolved) return STATUS_CONFIG.complete_needs_review;
+  }
+  return STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+}
 
 export default function AuditDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,7 +99,7 @@ export default function AuditDetailPage() {
     );
   }
 
-  const cfg = STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+  const cfg = getDisplayStatus(audit);
 
   return (
     <div className="max-w-5xl mx-auto">

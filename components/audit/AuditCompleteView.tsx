@@ -59,6 +59,7 @@ export function AuditCompleteView({
 }: Props) {
   const [showRerunModal, setShowRerunModal] = useState(false);
   const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
+  const [showManualSignOffConfirm, setShowManualSignOffConfirm] = useState(false);
 
   const markedQuestions = questions.filter(
     (q) => liveResults[q.id]?.markedCompliant,
@@ -66,7 +67,8 @@ export function AuditCompleteView({
 
   const needsAttentionQuestions = questions.filter((q) => {
     const r = liveResults[q.id];
-    return r && r.verdict !== "pass" && !r.markedCompliant;
+    if (!r) return true;
+    return r.verdict !== "pass" && !r.markedCompliant;
   });
 
   return (
@@ -90,8 +92,11 @@ export function AuditCompleteView({
             </span>
           ) : (
             <>
-              {allPassed && onArchive && (
-                <Button size="sm" onClick={onArchive}>
+              {onArchive && (allPassed || allMarked) && (
+                <Button
+                  size="sm"
+                  onClick={allPassed ? onArchive : () => setShowManualSignOffConfirm(true)}
+                >
                   <ShieldCheck className="h-4 w-4" />
                   Sign Off Audit
                 </Button>
@@ -308,6 +313,43 @@ export function AuditCompleteView({
           </DialogContent>
         </Dialog>
       )}
+      {/* Manual sign-off confirmation */}
+      <Dialog open={showManualSignOffConfirm} onOpenChange={setShowManualSignOffConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-2">
+              <AlertTriangle className="h-10 w-10 text-amber-500" />
+            </div>
+            <DialogTitle className="text-center">
+              Not all questions were AI-verified
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Some questions were marked compliant manually rather than verified
+              by the AI. By signing off, you confirm that you have personally
+              reviewed each unaudited question and attest to their compliance.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setShowManualSignOffConfirm(false);
+                onArchive?.();
+              }}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              I confirm — Sign Off Audit
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowManualSignOffConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
