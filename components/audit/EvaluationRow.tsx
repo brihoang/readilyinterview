@@ -163,6 +163,7 @@ export function EvaluationRow({
                 <PolicyPatchSuggestion
                   auditId={auditId}
                   questionId={question.id}
+                  onMarkCompliant={onMarkCompliant}
                 />
               )}
           </div>
