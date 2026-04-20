@@ -5,6 +5,7 @@ import { FolderOpen, FileText, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { PolicyViewer } from "@/components/policy/PolicyViewer";
 
 interface PolicyDoc {
   id: string;
@@ -20,6 +21,7 @@ export default function PoliciesPage() {
   const [docs, setDocs] = useState<PolicyDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/policies")
@@ -43,6 +45,8 @@ export default function PoliciesPage() {
   }, {});
 
   return (
+    <>
+    <PolicyViewer docId={viewingId} onClose={() => setViewingId(null)} />
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -115,12 +119,13 @@ export default function PoliciesPage() {
                   {folderDocs.map((doc) => (
                     <Card
                       key={doc.id}
-                      className="hover:shadow-md transition-shadow"
+                      className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/40"
+                      onClick={() => setViewingId(doc.id)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                           <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p
                               className="text-sm font-medium text-slate-800 truncate"
                               title={doc.title}
@@ -134,6 +139,9 @@ export default function PoliciesPage() {
                               <Badge variant="outline" className="text-xs">
                                 {doc.chunkCount} sections
                               </Badge>
+                              <span className="text-xs text-primary/70 font-medium">
+                                View →
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -146,5 +154,6 @@ export default function PoliciesPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
