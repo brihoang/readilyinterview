@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserHoverCard } from "@/components/ui/user-hover-card";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -237,7 +238,7 @@ export default function AuditsPage() {
                       {audit.archivedBy && (
                         <span className="flex items-center gap-1 text-xs text-emerald-700">
                           <ShieldCheck className="h-3 w-3" />
-                          {audit.archivedBy}
+                          <UserHoverCard name={audit.archivedBy} />
                         </span>
                       )}
                     </div>

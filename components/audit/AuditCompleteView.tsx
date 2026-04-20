@@ -88,7 +88,9 @@ export function AuditCompleteView({
           {isArchived ? (
             <span className="flex items-center gap-1.5 text-sm text-emerald-700 font-medium">
               <ShieldCheck className="h-4 w-4" />
-              Signed off by {archivedBy} ·{" "}
+              Signed off by{" "}
+              {archivedBy ? <UserHoverCard name={archivedBy} /> : null}
+              {" "}·{" "}
               {archivedAt ? new Date(archivedAt).toLocaleDateString() : ""}
             </span>
           ) : (
