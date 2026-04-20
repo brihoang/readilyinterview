@@ -294,6 +294,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
               question={q}
               result={liveResults[q.id]}
               isEvaluating={!liveResults[q.id]}
+              auditId={audit.id}
             />
           ))}
         </div>
@@ -304,6 +305,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
   if (currentStatus === "complete") {
     return (
       <AuditCompleteView
+        auditId={audit.id}
         questions={questions}
         liveResults={liveResults}
         passCount={passCount}

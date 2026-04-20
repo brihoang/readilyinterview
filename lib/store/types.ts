@@ -46,6 +46,12 @@ export interface Question {
   isEdited: boolean;
 }
 
+export interface PolicyPatch {
+  originalText: string;
+  patchedText: string;
+  reasoning: string;
+}
+
 export interface QuestionResult {
   questionId: string;
   verdict: Verdict;

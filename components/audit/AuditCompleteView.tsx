@@ -22,6 +22,7 @@ import { CollapsibleSection } from "./CollapsibleSection";
 import type { Question, QuestionResult } from "@/lib/store/types";
 
 interface Props {
+  auditId: string;
   questions: Question[];
   liveResults: Record<string, QuestionResult>;
   passCount: number;
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function AuditCompleteView({
+  auditId,
   questions,
   liveResults,
   passCount,
@@ -98,6 +100,7 @@ export function AuditCompleteView({
                   isEvaluating={false}
                   showMarkCompliant
                   onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
+                  auditId={auditId}
                 />
               ))}
           </div>

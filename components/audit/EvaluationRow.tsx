@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Question, QuestionResult, Verdict } from "@/lib/store/types";
+import { PolicyPatchSuggestion } from "./PolicyPatchSuggestion";
 
 const verdictConfig: Record<
   Verdict,
@@ -50,12 +51,14 @@ export function EvaluationRow({
   isEvaluating,
   showMarkCompliant,
   onMarkCompliant,
+  auditId,
 }: {
   question: Question;
   result?: QuestionResult;
   isEvaluating: boolean;
   showMarkCompliant?: boolean;
   onMarkCompliant?: (v: boolean) => void;
+  auditId?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -154,6 +157,14 @@ export function EvaluationRow({
               </p>
               <p className="text-slate-600">{result.reasoning}</p>
             </div>
+
+            {auditId &&
+              (result.verdict === "fail" || result.verdict === "partial") && (
+                <PolicyPatchSuggestion
+                  auditId={auditId}
+                  questionId={question.id}
+                />
+              )}
           </div>
         </>
       )}
