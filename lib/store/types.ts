@@ -17,6 +17,14 @@ export type ComplianceFramework =
   | "State Health Department"
   | "Other";
 
+export interface AcceptedPatch {
+  originalText: string;
+  patchedText: string;
+  reasoning: string;
+  acceptedBy: string;
+  acceptedAt: string;
+}
+
 export interface PolicyDocument {
   id: string;
   title: string;
@@ -26,6 +34,8 @@ export interface PolicyDocument {
   dateAdded: string;
   chunks: PolicyChunk[];
   rawText: string;
+  isPatched?: boolean;
+  patches?: AcceptedPatch[];
 }
 
 export interface PolicyChunk {

@@ -35,6 +35,7 @@ export async function generatePolicySuggestion({
 }) {
   const { object } = await generateObject({
     model: google(MODEL),
+    providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
     schema: PatchSchema,
     system: `You are a healthcare compliance policy writer. Draft a minimal, targeted policy update that closes a specific compliance gap found during an audit.
 

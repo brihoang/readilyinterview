@@ -27,6 +27,7 @@ export async function POST(
   if (!question)
     return NextResponse.json({ error: "Question not found" }, { status: 404 });
 
+  console.log("[patch-suggestion] calling Gemini for question", questionId);
   const patch = await generatePolicySuggestion({
     questionText: question.text,
     evidenceText: result.evidenceText,

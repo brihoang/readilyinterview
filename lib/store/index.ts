@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { Audit, PolicyDocument, PolicyChunk, AuditSummary } from "./types";
+import type { Audit, PolicyDocument, PolicyChunk, AuditSummary, AcceptedPatch } from "./types";
 
 // Redis persistence via Upstash — graceful no-op when env vars are absent (local dev)
 function getRedis() {
@@ -85,7 +85,8 @@ class InMemoryStore {
   // --- Policy Documents ---
 
   addPolicyDocument(doc: Omit<PolicyDocument, "id">): PolicyDocument {
-    const id = nanoid();
+    // Deterministic ID from filename so IDs are stable across server restarts
+    const id = `doc_${doc.folder}_${doc.filename}`.replace(/[^a-zA-Z0-9_-]/g, "_");
     const chunks = doc.chunks.map((c) => ({ ...c, documentId: id }));
     const full = { ...doc, id, chunks };
     this.policyDocuments.set(id, full);
@@ -106,6 +107,49 @@ class InMemoryStore {
 
   hasPolicyDocuments(): boolean {
     return this.policyDocuments.size > 0;
+  }
+
+  patchPolicyDocument(
+    docId: string,
+    patch: Omit<AcceptedPatch, "acceptedAt">,
+  ): PolicyDocument | undefined {
+    const doc = this.policyDocuments.get(docId);
+    if (!doc) return undefined;
+
+    let applied = false;
+    const updatedChunks = doc.chunks.map((chunk) => {
+      if (!applied && patch.originalText && chunk.text.includes(patch.originalText)) {
+        applied = true;
+        return { ...chunk, text: chunk.text.replace(patch.originalText, patch.patchedText) };
+      }
+      return chunk;
+    });
+
+    // No matching chunk (fail case — no existing policy) — append new chunk
+    if (!applied) {
+      updatedChunks.push({
+        id: nanoid(),
+        documentId: docId,
+        sectionTitle: "Policy Update",
+        text: patch.patchedText,
+        chunkIndex: updatedChunks.length,
+      });
+    }
+
+    const acceptedPatch: AcceptedPatch = {
+      ...patch,
+      acceptedAt: new Date().toISOString(),
+    };
+
+    const updatedDoc: PolicyDocument = {
+      ...doc,
+      chunks: updatedChunks,
+      isPatched: true,
+      patches: [...(doc.patches ?? []), acceptedPatch],
+    };
+
+    this.policyDocuments.set(docId, updatedDoc);
+    return updatedDoc;
   }
 
   // --- Audits ---

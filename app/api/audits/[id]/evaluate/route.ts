@@ -76,7 +76,7 @@ export async function POST(
         );
         controller.close();
       } catch (err) {
-        console.error("Evaluation error:", err);
+        console.error("Evaluation error:", err instanceof Error ? err.message : String(err));
         await store.updateAudit(params.id, { status: "complete" });
         controller.enqueue(
           encoder.encode(JSON.stringify({ error: String(err) }) + "\n"),

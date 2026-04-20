@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
+import { Sparkles, ChevronRight, ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/lib/context/UserContext";
 import type { PolicyPatch } from "@/lib/store/types";
 
 interface Props {
@@ -10,26 +12,62 @@ interface Props {
 }
 
 export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
+  const { currentUser } = useCurrentUser();
   const [expanded, setExpanded] = useState(false);
-  const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [patch, setPatch] = useState<PolicyPatch | null>(null);
+  const [accepting, setAccepting] = useState(false);
+  const [accepted, setAccepted] = useState<{ by: string; at: string } | null>(null);
 
   async function fetchPatch() {
     setStatus("loading");
+    setErrorMsg(null);
     try {
       const res = await fetch(`/api/audits/${auditId}/patch-suggestion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId }),
       });
-      if (!res.ok) throw new Error("Failed to generate suggestion");
+      if (res.status === 429) {
+        throw new Error("Rate limit reached — wait a moment and try again.");
+      }
+      if (res.status === 404) {
+        throw new Error("Audit result not found. Try re-running the audit.");
+      }
+      if (!res.ok) {
+        throw new Error(`Something went wrong (${res.status}). Try again.`);
+      }
       const data: PolicyPatch = await res.json();
       setPatch(data);
       setStatus("loaded");
-    } catch {
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
       setStatus("error");
+    }
+  }
+
+  async function handleAccept() {
+    if (!patch) return;
+    setAccepting(true);
+    try {
+      const res = await fetch(`/api/audits/${auditId}/accept-patch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionId,
+          originalText: patch.originalText,
+          patchedText: patch.patchedText,
+          reasoning: patch.reasoning,
+          acceptedBy: currentUser.displayName,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to accept patch");
+      setAccepted({ by: currentUser.displayName, at: new Date().toISOString() });
+    } catch {
+      // leave accepting=false, let user retry
+    } finally {
+      setAccepting(false);
     }
   }
 
@@ -70,9 +108,7 @@ export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
 
           {status === "error" && (
             <div className="flex flex-col items-center gap-2 py-4">
-              <p className="text-sm text-slate-600">
-                Rate limit reached — wait a moment and try again.
-              </p>
+              <p className="text-sm text-slate-600">{errorMsg}</p>
               <button
                 className="text-xs text-indigo-600 hover:text-indigo-800 underline underline-offset-2"
                 onClick={fetchPatch}
@@ -111,6 +147,29 @@ export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {patch.reasoning}
               </p>
+
+              {accepted ? (
+                <div className="flex items-center gap-2 pt-1 text-xs text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  Patch accepted by {accepted.by} ·{" "}
+                  {new Date(accepted.at).toLocaleDateString()}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={handleAccept}
+                    disabled={accepting}
+                  >
+                    {accepting && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Accept Patch
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Applies to policy library immediately
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
