@@ -92,6 +92,7 @@ export interface Audit {
   results: Record<string, QuestionResult>;
   iterationCount: number;
   runMode?: "all" | "failed-only";
+  createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
 }
@@ -110,6 +111,7 @@ export interface AuditSummary {
   partialCount: number;
   markedCompliantCount: number;
   iterationCount: number;
+  createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
 }

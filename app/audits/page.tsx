@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useCurrentUser } from "@/lib/context/UserContext";
 import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
 const FRAMEWORKS: ComplianceFramework[] = [
@@ -75,6 +76,7 @@ function getDisplayStatus(audit: AuditSummary) {
 
 export default function AuditsPage() {
   const router = useRouter();
+  const { currentUser } = useCurrentUser();
   const [audits, setAudits] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -104,7 +106,7 @@ export default function AuditsPage() {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, createdBy: currentUser.displayName }),
       });
       const data = await res.json();
       router.push(`/audits/${data.audit.id}`);

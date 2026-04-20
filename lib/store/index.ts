@@ -162,6 +162,7 @@ class InMemoryStore {
     framework: Audit["framework"];
     targetDate: string;
     notes: string;
+    createdBy?: string;
   }): Promise<Audit> {
     const id = nanoid();
     const audit: Audit = {
@@ -200,6 +201,7 @@ class InMemoryStore {
         partialCount: results.filter((r) => r.verdict === "partial").length,
         markedCompliantCount: results.filter((r) => r.markedCompliant && r.verdict !== "pass").length,
         iterationCount: a.iterationCount,
+        createdBy: a.createdBy,
         archivedBy: a.archivedBy,
         archivedAt: a.archivedAt,
       };

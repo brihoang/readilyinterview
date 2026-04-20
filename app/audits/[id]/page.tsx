@@ -11,6 +11,7 @@ import type { Audit, ComplianceFramework } from "@/lib/store/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { UserHoverCard } from "@/components/ui/user-hover-card";
 import {
   Select,
   SelectContent,
@@ -191,6 +192,14 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
 
   return (
     <div className="max-w-lg space-y-4">
+      {audit.createdBy && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground pb-2 border-b">
+          <span>Created by</span>
+          <UserHoverCard name={audit.createdBy} />
+          <span>·</span>
+          <span>{new Date(audit.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label>Audit Name</Label>
         <Input
