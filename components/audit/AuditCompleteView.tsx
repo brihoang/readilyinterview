@@ -55,6 +55,11 @@ export function AuditCompleteView({
     (q) => liveResults[q.id]?.markedCompliant,
   );
 
+  const needsAttentionQuestions = questions.filter((q) => {
+    const r = liveResults[q.id];
+    return r && r.verdict !== "pass" && !r.markedCompliant;
+  });
+
   return (
     <>
       {/* Results summary bar */}
@@ -64,7 +69,7 @@ export function AuditCompleteView({
             <CheckCircle2 className="h-4 w-4" /> {passCount} compliant
           </span>
           <span className="flex items-center gap-1.5 text-red-700 font-medium">
-            <XCircle className="h-4 w-4" /> {failCount} need attention
+            <XCircle className="h-4 w-4" /> {needsAttentionQuestions.length} need attention
           </span>
         </div>
         <div className="ml-auto">
@@ -80,29 +85,24 @@ export function AuditCompleteView({
       </div>
 
       {/* Non-compliant questions (todo list) */}
-      {failCount > 0 && (
+      {needsAttentionQuestions.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
             <XCircle className="h-4 w-4 text-red-500" />
-            Needs Attention ({failCount})
+            Needs Attention ({needsAttentionQuestions.length})
           </h3>
           <div className="space-y-3">
-            {questions
-              .filter((q) => {
-                const r = liveResults[q.id];
-                return r && r.verdict !== "pass" && !r.markedCompliant;
-              })
-              .map((q) => (
-                <EvaluationRow
-                  key={q.id}
-                  question={q}
-                  result={liveResults[q.id]}
-                  isEvaluating={false}
-                  showMarkCompliant
-                  onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
-                  auditId={auditId}
-                />
-              ))}
+            {needsAttentionQuestions.map((q) => (
+              <EvaluationRow
+                key={q.id}
+                question={q}
+                result={liveResults[q.id]}
+                isEvaluating={false}
+                showMarkCompliant
+                onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
+                auditId={auditId}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -130,6 +130,12 @@ export function AuditCompleteView({
                       ? new Date(r.markedCompliantAt).toLocaleDateString()
                       : ""}
                   </span>
+                  <button
+                    className="text-xs text-muted-foreground hover:text-red-600 underline underline-offset-2 shrink-0"
+                    onClick={() => onMarkCompliant(q.id, false)}
+                  >
+                    Unmark
+                  </button>
                 </div>
               );
             })}
