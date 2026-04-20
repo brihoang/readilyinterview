@@ -51,7 +51,15 @@ const STATUS_CONFIG: Record<
   ready: { label: "Ready", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
   complete: { label: "Complete", variant: "success" },
+  needs_review: { label: "Needs Review", variant: "warning" },
 };
+
+function getDisplayStatus(audit: AuditSummary) {
+  if (audit.status === "complete" && (audit.failCount > 0 || audit.partialCount > 0)) {
+    return STATUS_CONFIG.needs_review;
+  }
+  return STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+}
 
 export default function AuditsPage() {
   const router = useRouter();
@@ -140,7 +148,7 @@ export default function AuditsPage() {
       ) : (
         <div className="space-y-3">
           {audits.map((audit) => {
-            const cfg = STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+            const cfg = getDisplayStatus(audit);
             const score = getComplianceScore(audit);
             return (
               <Card
