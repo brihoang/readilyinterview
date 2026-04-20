@@ -8,6 +8,8 @@ import {
   Building2,
   Calendar,
   ArrowRight,
+  ShieldCheck,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
 const FRAMEWORKS: ComplianceFramework[] = [
@@ -50,8 +58,19 @@ const STATUS_CONFIG: Record<
   review: { label: "Review", variant: "warning" },
   ready: { label: "Ready", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
-  complete: { label: "Complete", variant: "success" },
+  complete: { label: "AI Verified", variant: "success" },
+  archived: { label: "Signed Off", variant: "success" },
+  needs_review: { label: "Needs Review", variant: "warning" },
 };
+
+function getDisplayStatus(audit: AuditSummary) {
+  if (audit.status === "complete") {
+    const totalFailing = audit.failCount + audit.partialCount;
+    const unresolved = totalFailing - (audit.markedCompliantCount ?? 0);
+    if (unresolved > 0) return STATUS_CONFIG.needs_review;
+  }
+  return STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+}
 
 export default function AuditsPage() {
   const router = useRouter();
@@ -59,6 +78,9 @@ export default function AuditsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  type SortKey = "date-desc" | "date-asc" | "score-desc" | "score-asc";
+  const [sortKey, setSortKey] = useState<SortKey>("date-desc");
   const [form, setForm] = useState({
     name: "",
     organization: "",
@@ -92,10 +114,29 @@ export default function AuditsPage() {
 
   function getComplianceScore(a: AuditSummary) {
     if (a.questionCount === 0) return null;
+
+    if (a.status === "archived") return 100; // archived audits are considered fully compliant
     return Math.round(
-      ((a.passCount + a.partialCount * 0.5) / a.questionCount) * 100,
+      ((a.passCount + (a.markedCompliantCount ?? 0)) / a.questionCount) * 100,
     );
   }
+
+  const archivedCount = audits.filter((a) => a.status === "archived").length;
+
+  const visibleAudits = audits
+    .filter((a) => showArchived || a.status !== "archived")
+    .sort((a, b) => {
+      switch (sortKey) {
+        case "date-asc":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "date-desc":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "score-asc":
+          return (getComplianceScore(a) ?? -1) - (getComplianceScore(b) ?? -1);
+        case "score-desc":
+          return (getComplianceScore(b) ?? -1) - (getComplianceScore(a) ?? -1);
+      }
+    });
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -112,6 +153,34 @@ export default function AuditsPage() {
           New Audit
         </Button>
       </div>
+
+      {/* Toolbar */}
+      {!loading && audits.length > 0 && (
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-44 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Newest first</SelectItem>
+              <SelectItem value="date-asc">Oldest first</SelectItem>
+              <SelectItem value="score-desc">Highest score</SelectItem>
+              <SelectItem value="score-asc">Lowest score</SelectItem>
+            </SelectContent>
+          </Select>
+          {archivedCount > 0 && (
+            <Button
+              variant={showArchived ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowArchived((v) => !v)}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              {showArchived ? "Hide archived" : `Show archived (${archivedCount})`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Audit list */}
       {loading ? (
@@ -137,10 +206,20 @@ export default function AuditsPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : visibleAudits.length === 0 ? (
+        <div className="text-center py-12 text-sm text-muted-foreground">
+          All audits are archived.{" "}
+          <button
+            className="underline underline-offset-2 hover:text-slate-700"
+            onClick={() => setShowArchived(true)}
+          >
+            Show archived
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
-          {audits.map((audit) => {
-            const cfg = STATUS_CONFIG[audit.status] ?? STATUS_CONFIG.idle;
+          {visibleAudits.map((audit) => {
+            const cfg = getDisplayStatus(audit);
             const score = getComplianceScore(audit);
             return (
               <Card
@@ -155,6 +234,12 @@ export default function AuditsPage() {
                         {audit.name}
                       </h3>
                       <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                      {audit.archivedBy && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-700">
+                          <ShieldCheck className="h-3 w-3" />
+                          {audit.archivedBy}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -172,18 +257,39 @@ export default function AuditsPage() {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6 shrink-0">
+                  <div className="flex items-center gap-4 shrink-0">
                     {audit.questionCount > 0 && (
                       <div className="text-center">
                         {score !== null ? (
-                          <>
-                            <p className="text-2xl font-bold text-slate-800">
-                              {score}%
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Compliance
-                            </p>
-                          </>
+                          <TooltipProvider>
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-start gap-0.5">
+                                <p className="text-2xl font-bold text-slate-800">
+                                  {score}%
+                                </p>
+                                {audit.status === "archived" &&
+                                  audit.passCount !== audit.questionCount && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="text-amber-500 text-xs font-semibold mt-0.5 cursor-default">
+                                          *
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        className="max-w-xs text-xs"
+                                      >
+                                        At least one question was manually
+                                        marked compliant without AI verification
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Compliance
+                              </p>
+                            </div>
+                          </TooltipProvider>
                         ) : (
                           <>
                             <p className="text-2xl font-bold text-slate-800">
@@ -194,18 +300,6 @@ export default function AuditsPage() {
                             </p>
                           </>
                         )}
-                      </div>
-                    )}
-                    {score !== null && (
-                      <div className="flex gap-3 text-xs">
-                        <span className="flex items-center gap-1 text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          {audit.passCount} pass
-                        </span>
-                        <span className="flex items-center gap-1 text-red-700">
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                          {audit.failCount} fail
-                        </span>
                       </div>
                     )}
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />

@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   RotateCcw,
   PartyPopper,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,10 @@ interface Props {
   onResultsModalClose: () => void;
   onMarkCompliant: (questionId: string, value: boolean) => void;
   onRerun: (mode: "all" | "failed-only") => void;
+  onArchive?: () => void;
+  isArchived?: boolean;
+  archivedBy?: string;
+  archivedAt?: string;
 }
 
 export function AuditCompleteView({
@@ -48,13 +53,24 @@ export function AuditCompleteView({
   onResultsModalClose,
   onMarkCompliant,
   onRerun,
+  onArchive,
+  isArchived,
+  archivedBy,
+  archivedAt,
 }: Props) {
   const [showRerunModal, setShowRerunModal] = useState(false);
   const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
+  const [showManualSignOffConfirm, setShowManualSignOffConfirm] = useState(false);
 
   const markedQuestions = questions.filter(
     (q) => liveResults[q.id]?.markedCompliant,
   );
+
+  const needsAttentionQuestions = questions.filter((q) => {
+    const r = liveResults[q.id];
+    if (!r) return true;
+    return r.verdict !== "pass" && !r.markedCompliant;
+  });
 
   return (
     <>
@@ -65,45 +81,59 @@ export function AuditCompleteView({
             <CheckCircle2 className="h-4 w-4" /> {passCount} compliant
           </span>
           <span className="flex items-center gap-1.5 text-red-700 font-medium">
-            <XCircle className="h-4 w-4" /> {failCount} need attention
+            <XCircle className="h-4 w-4" /> {needsAttentionQuestions.length} need attention
           </span>
         </div>
-        <div className="ml-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowRerunModal(true)}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Re-run Audit
-          </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {isArchived ? (
+            <span className="flex items-center gap-1.5 text-sm text-emerald-700 font-medium">
+              <ShieldCheck className="h-4 w-4" />
+              Signed off by {archivedBy} ·{" "}
+              {archivedAt ? new Date(archivedAt).toLocaleDateString() : ""}
+            </span>
+          ) : (
+            <>
+              {onArchive && (allPassed || allMarked) && (
+                <Button
+                  size="sm"
+                  onClick={allPassed ? onArchive : () => setShowManualSignOffConfirm(true)}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Sign Off Audit
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRerunModal(true)}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Re-run Audit
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Non-compliant questions (todo list) */}
-      {failCount > 0 && (
+      {needsAttentionQuestions.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
             <XCircle className="h-4 w-4 text-red-500" />
-            Needs Attention ({failCount})
+            Needs Attention ({needsAttentionQuestions.length})
           </h3>
           <div className="space-y-3">
-            {questions
-              .filter((q) => {
-                const r = liveResults[q.id];
-                return r && r.verdict !== "pass" && !r.markedCompliant;
-              })
-              .map((q) => (
-                <EvaluationRow
-                  key={q.id}
-                  question={q}
-                  result={liveResults[q.id]}
-                  isEvaluating={false}
-                  showMarkCompliant
-                  onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
-                  auditId={auditId}
-                />
-              ))}
+            {needsAttentionQuestions.map((q) => (
+              <EvaluationRow
+                key={q.id}
+                question={q}
+                result={liveResults[q.id]}
+                isEvaluating={false}
+                showMarkCompliant
+                onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
+                auditId={auditId}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -135,6 +165,12 @@ export function AuditCompleteView({
                       ? new Date(r.markedCompliantAt).toLocaleDateString()
                       : ""}
                   </span>
+                  <button
+                    className="text-xs text-muted-foreground hover:text-red-600 underline underline-offset-2 shrink-0"
+                    onClick={() => onMarkCompliant(q.id, false)}
+                  >
+                    Unmark
+                  </button>
                 </div>
               );
             })}
@@ -172,15 +208,26 @@ export function AuditCompleteView({
                   <PartyPopper className="h-12 w-12 text-amber-400" />
                 </div>
                 <DialogTitle className="text-center text-xl">
-                  All questions compliant!
+                  AI verification passed
                 </DialogTitle>
                 <DialogDescription className="text-center">
-                  Your policies satisfy all {questions.length} questionnaire
-                  requirements.
+                  All {questions.length} questions cleared by the AI. A compliance
+                  officer should review and sign off to officially close this audit.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="justify-center">
-                <Button onClick={onResultsModalClose}>View Full Report</Button>
+              <DialogFooter className="flex-col gap-2 sm:flex-col">
+                {onArchive && (
+                  <Button
+                    className="w-full"
+                    onClick={() => { onResultsModalClose(); onArchive(); }}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Sign Off &amp; Close Audit
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full" onClick={onResultsModalClose}>
+                  Review Report First
+                </Button>
               </DialogFooter>
             </>
           ) : (
@@ -237,8 +284,8 @@ export function AuditCompleteView({
         </DialogContent>
       </Dialog>
 
-      {/* All-marked modal */}
-      {allMarked && !showRerunModal && (
+      {/* All-marked modal — only when marked compliant but not yet re-run */}
+      {allMarked && !allPassed && !showRerunModal && (
         <Dialog
           open={!allMarkedDismissed}
           onOpenChange={(open) => !open && setAllMarkedDismissed(true)}
@@ -271,6 +318,43 @@ export function AuditCompleteView({
           </DialogContent>
         </Dialog>
       )}
+      {/* Manual sign-off confirmation */}
+      <Dialog open={showManualSignOffConfirm} onOpenChange={setShowManualSignOffConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-2">
+              <AlertTriangle className="h-10 w-10 text-amber-500" />
+            </div>
+            <DialogTitle className="text-center">
+              Not all questions were AI-verified
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Some questions were marked compliant manually rather than verified
+              by the AI. By signing off, you confirm that you have personally
+              reviewed each unaudited question and attest to their compliance.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setShowManualSignOffConfirm(false);
+                onArchive?.();
+              }}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              I confirm — Sign Off Audit
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowManualSignOffConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -101,29 +101,29 @@ export function EvaluationRow({
           </div>
           <p className="text-sm text-slate-700">{question.text}</p>
         </div>
-        {result && (
-          <div className="flex items-center gap-2 shrink-0">
-            {showMarkCompliant && onMarkCompliant && (
-              <label
-                className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  className="rounded"
-                  checked={result.markedCompliant ?? false}
-                  onChange={(e) => onMarkCompliant(e.target.checked)}
-                />
-                Mark compliant
-              </label>
-            )}
-            {expanded ? (
+        <div className="flex items-center gap-2 shrink-0">
+          {showMarkCompliant && onMarkCompliant && (
+            <label
+              className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                className="rounded"
+                checked={result?.markedCompliant ?? false}
+                onChange={(e) => onMarkCompliant(e.target.checked)}
+              />
+              Mark compliant
+            </label>
+          )}
+          {result && (
+            expanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       {expanded && result && (
@@ -163,6 +163,7 @@ export function EvaluationRow({
                 <PolicyPatchSuggestion
                   auditId={auditId}
                   questionId={question.id}
+                  onMarkCompliant={onMarkCompliant}
                 />
               )}
           </div>

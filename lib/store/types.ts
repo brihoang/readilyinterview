@@ -5,7 +5,8 @@ export type AuditStatus =
   | "review"
   | "ready"
   | "evaluating"
-  | "complete";
+  | "complete"
+  | "archived";
 
 export type Verdict = "pass" | "fail" | "partial" | "pending";
 
@@ -91,6 +92,8 @@ export interface Audit {
   results: Record<string, QuestionResult>;
   iterationCount: number;
   runMode?: "all" | "failed-only";
+  archivedBy?: string;
+  archivedAt?: string;
 }
 
 export interface AuditSummary {
@@ -105,5 +108,8 @@ export interface AuditSummary {
   passCount: number;
   failCount: number;
   partialCount: number;
+  markedCompliantCount: number;
   iterationCount: number;
+  archivedBy?: string;
+  archivedAt?: string;
 }

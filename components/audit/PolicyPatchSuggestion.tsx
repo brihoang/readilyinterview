@@ -10,9 +10,10 @@ import type { PolicyPatch } from "@/lib/store/types";
 interface Props {
   auditId: string;
   questionId: string;
+  onMarkCompliant?: (v: boolean) => void;
 }
 
-export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
+export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: Props) {
   const { currentUser } = useCurrentUser();
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
@@ -65,6 +66,7 @@ export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
       });
       if (!res.ok) throw new Error("Failed to accept patch");
       setAccepted({ by: currentUser.displayName, at: new Date().toISOString() });
+      onMarkCompliant?.(true);
     } catch {
       // leave accepting=false, let user retry
     } finally {
@@ -164,7 +166,7 @@ export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
                     disabled={accepting}
                   >
                     {accepting && <Loader2 className="h-3 w-3 animate-spin" />}
-                    Accept Patch
+                    Patch & Mark Compliant
                   </Button>
                   <span className="text-xs text-muted-foreground">
                     Applies to policy library immediately
