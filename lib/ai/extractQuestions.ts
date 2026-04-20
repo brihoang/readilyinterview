@@ -28,7 +28,7 @@ export async function extractQuestionsFromText(
 ): Promise<Question[]> {
   const { object } = await generateObject({
     model: google(MODEL),
-    providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+    mode: "tool",
     schema: QuestionSchema,
     system: `You are a healthcare compliance analyst. Extract every audit question or compliance criterion from the questionnaire document provided.
 Each item should represent a distinct thing that must be verified or confirmed.

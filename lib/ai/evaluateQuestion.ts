@@ -33,7 +33,7 @@ export async function evaluateQuestion(
 
   const { object } = await generateObject({
     model: google(MODEL),
-    providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+    mode: "tool",
     schema: EvalSchema,
     system: `You are a strict healthcare compliance auditor reviewing an organization's policies.
 Your job: determine whether the organization's policies satisfy a specific audit question.
