@@ -87,6 +87,8 @@ class InMemoryStore {
   addPolicyDocument(doc: Omit<PolicyDocument, "id">): PolicyDocument {
     // Deterministic ID from filename so IDs are stable across server restarts
     const id = `doc_${doc.folder}_${doc.filename}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+    // Don't overwrite an existing doc — preserves any accepted patches
+    if (this.policyDocuments.has(id)) return this.policyDocuments.get(id)!;
     const chunks = doc.chunks.map((c) => ({ ...c, documentId: id }));
     const full = { ...doc, id, chunks };
     this.policyDocuments.set(id, full);

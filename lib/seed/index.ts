@@ -42,6 +42,8 @@ let seeding = false;
 
 export async function ensureSeeded(): Promise<void> {
   if (seeded || seeding) return;
+  // Docs already in store (e.g. hot-reload reset the flag) — don't overwrite patches
+  if (store.hasPolicyDocuments()) { seeded = true; return; }
   seeding = true;
 
   try {

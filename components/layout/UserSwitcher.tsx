@@ -39,7 +39,7 @@ export function UserSwitcher() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
                   <p className="font-medium">{user.displayName}</p>
-                  <p className="text-xs text-muted-foreground">{user.title}</p>
+                  <p className="text-xs text-white/70">{user.title}</p>
                 </TooltipContent>
               </Tooltip>
             );
@@ -62,7 +62,7 @@ export function UserSwitcher() {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-white/80 mt-0.5">
               {currentUser.title}
             </p>
           </div>
