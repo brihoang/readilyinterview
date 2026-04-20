@@ -9,6 +9,7 @@ import {
   Calendar,
   ArrowRight,
   ShieldCheck,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +78,9 @@ export default function AuditsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  type SortKey = "date-desc" | "date-asc" | "score-desc" | "score-asc";
+  const [sortKey, setSortKey] = useState<SortKey>("date-desc");
   const [form, setForm] = useState({
     name: "",
     organization: "",
@@ -117,6 +121,23 @@ export default function AuditsPage() {
     );
   }
 
+  const archivedCount = audits.filter((a) => a.status === "archived").length;
+
+  const visibleAudits = audits
+    .filter((a) => showArchived || a.status !== "archived")
+    .sort((a, b) => {
+      switch (sortKey) {
+        case "date-asc":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "date-desc":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "score-asc":
+          return (getComplianceScore(a) ?? -1) - (getComplianceScore(b) ?? -1);
+        case "score-desc":
+          return (getComplianceScore(b) ?? -1) - (getComplianceScore(a) ?? -1);
+      }
+    });
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
@@ -132,6 +153,34 @@ export default function AuditsPage() {
           New Audit
         </Button>
       </div>
+
+      {/* Toolbar */}
+      {!loading && audits.length > 0 && (
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-44 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Newest first</SelectItem>
+              <SelectItem value="date-asc">Oldest first</SelectItem>
+              <SelectItem value="score-desc">Highest score</SelectItem>
+              <SelectItem value="score-asc">Lowest score</SelectItem>
+            </SelectContent>
+          </Select>
+          {archivedCount > 0 && (
+            <Button
+              variant={showArchived ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowArchived((v) => !v)}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              {showArchived ? "Hide archived" : `Show archived (${archivedCount})`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Audit list */}
       {loading ? (
@@ -157,9 +206,19 @@ export default function AuditsPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : visibleAudits.length === 0 ? (
+        <div className="text-center py-12 text-sm text-muted-foreground">
+          All audits are archived.{" "}
+          <button
+            className="underline underline-offset-2 hover:text-slate-700"
+            onClick={() => setShowArchived(true)}
+          >
+            Show archived
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
-          {audits.map((audit) => {
+          {visibleAudits.map((audit) => {
             const cfg = getDisplayStatus(audit);
             const score = getComplianceScore(audit);
             return (
