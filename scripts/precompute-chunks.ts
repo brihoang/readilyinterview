@@ -22,10 +22,96 @@ const OUTPUT_FILE = path.join(
 );
 
 const CHUNK_SIZE = 800;
-const OVERLAP = 100;
+
+function cleanPdfText(raw: string): string {
+  let text = raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/(\w)-\n(\w)/g, "$1$2")
+    .replace(/\n{3,}/g, "\n\n");
+
+  const lines = text.split("\n");
+  const lineCounts = new Map<string, number>();
+  for (const line of lines) {
+    const key = line.trim().replace(/\s+/g, " ").toLowerCase();
+    if (key.length >= 10 && key.length <= 100) {
+      lineCounts.set(key, (lineCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const docPageEstimate = Math.max(1, text.length / 3000);
+  const repeatThreshold = Math.max(3, Math.floor(docPageEstimate * 0.4));
+  const boilerplate = new Set(
+    [...lineCounts.entries()]
+      .filter(([, n]) => n >= repeatThreshold)
+      .map(([k]) => k),
+  );
+
+  const cleaned = lines.filter((line) => {
+    const t = line.trim().replace(/\s+/g, " ");
+    if (/^\d+$/.test(t)) return false;
+    if (/^-\s*\d+\s*-$/.test(t)) return false;
+    // Any line starting with page number pattern (with or without trailing title)
+    if (/^p\s*a\s*g\s*e\s+\d+/i.test(t)) return false;
+    if (/^\d+\s+of\s+\d+\b/.test(t)) return false;
+    const key = t.toLowerCase();
+    return !boilerplate.has(key);
+  });
+
+  const protectedLines = cleaned.map((line) => {
+    const t = line.trim();
+    const looksLikeHeading =
+      /^[A-Z][A-Z\s\d.,:-]{5,}$/.test(t) ||
+      /^[IVX]+\.\s+[A-Z]/.test(t) ||
+      /^(PURPOSE|SCOPE|PROCEDURE|DEFINITIONS?|REFERENCES?|OVERVIEW|BACKGROUND|RESPONSIBILITIES|REQUIREMENTS?|INTRODUCTION|APPENDIX|POLICY)\b.{0,35}$/i.test(t);
+    return looksLikeHeading ? "\n" + line + "\n" : line;
+  });
+
+  text = protectedLines
+    .join("\n")
+    .replace(/([^\n])\n([^\n])/g, "$1 $2")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n");
+
+  const paras = text.split(/\n\n+/);
+  const result: string[] = [];
+  for (const para of paras) {
+    const trimmed = para.trim();
+    if (!trimmed || trimmed.length < 20) continue;
+    const norm = trimmed.replace(/\s+/g, " ").toLowerCase();
+    const isDup = result.slice(-4).some((prev) => {
+      const prevNorm = prev.replace(/\s+/g, " ").toLowerCase();
+      const shorter = norm.length < prevNorm.length ? norm : prevNorm;
+      const longer = norm.length >= prevNorm.length ? norm : prevNorm;
+      if (shorter.length > 80 && longer.includes(shorter)) return true;
+      const wordsA = new Set(norm.split(/\s+/));
+      const wordsB = new Set(prevNorm.split(/\s+/));
+      const intersection = [...wordsA].filter((w) => wordsB.has(w)).length;
+      const union = new Set([...wordsA, ...wordsB]).size;
+      return intersection / union > 0.75;
+    });
+    if (!isDup) result.push(trimmed);
+  }
+
+  return result.join("\n\n");
+}
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+function extractSectionTitle(para: string): string {
+  const flat = para.replace(/\s+/g, " ").trim();
+
+  const titleField = flat.match(/\bTitle:\s*([^:]+?)(?:\s+(?:Department|Section|Division|Program):|$)/i);
+  if (titleField) return titleField[1].trim().slice(0, 80);
+
+  const romanLabel = flat.match(/^([IVX]+\.\s+[^:.]{2,40})(?:[:.]\s|$)/);
+  if (romanLabel) return romanLabel[1].trim();
+
+  if (/^[A-Z][A-Z\s\d.,:-]{5,}$/.test(flat)) return flat.slice(0, 60);
+
+  const firstPhrase = flat.split(/[,;]/)[0];
+  return firstPhrase.slice(0, 60).trim();
 }
 
 function chunkText(
@@ -45,17 +131,22 @@ function chunkText(
   let currentChunk = "";
   let currentTokens = 0;
   let chunkIndex = 0;
-  let sectionTitle = "Introduction";
+  let sectionTitle = "";
 
   for (const para of paragraphs) {
     const isHeading =
       /^[A-Z][A-Z\s\d.,:-]{5,}$/.test(para) ||
-      /^\d+[\.\d]*\s+[A-Z]/.test(para) ||
-      /^(SECTION|POLICY|PURPOSE|SCOPE|PROCEDURE|DEFINITIONS?|REFERENCES?)\b/i.test(
-        para,
-      );
+      /^[IVX]+\.\s+[A-Z]/.test(para) ||
+      /^Title:\s+\S/.test(para) ||
+      /^(SECTION|POLICY|PURPOSE|SCOPE|PROCEDURE|DEFINITIONS?|REFERENCES?|OVERVIEW|BACKGROUND|RESPONSIBILITIES|GUIDELINES?|STANDARDS?|REQUIREMENTS?|INTRODUCTION|APPENDIX)\b.{0,35}$/i.test(para) ||
+      (para.length <= 60 &&
+        !/[.?!;]$/.test(para) &&
+        /^[A-Z]/.test(para) &&
+        para.split(/\s+/).length <= 8 &&
+        para.split(/\s+/).filter((w) => /^[A-Z]/.test(w)).length >=
+          Math.ceil(para.split(/\s+/).length * 0.6));
 
-    if (isHeading) sectionTitle = para.slice(0, 80);
+    if (isHeading) sectionTitle = extractSectionTitle(para);
 
     const paraTokens = estimateTokens(para);
 
@@ -66,9 +157,8 @@ function chunkText(
         text: currentChunk.trim(),
         chunkIndex: chunkIndex++,
       });
-      const overlapChars = OVERLAP * 4;
-      currentChunk = currentChunk.slice(-overlapChars) + "\n\n" + para;
-      currentTokens = estimateTokens(currentChunk);
+      currentChunk = para;
+      currentTokens = paraTokens;
     } else {
       currentChunk += (currentChunk ? "\n\n" : "") + para;
       currentTokens += paraTokens;
@@ -142,9 +232,10 @@ async function main() {
     for (const file of files) {
       try {
         const buffer = fs.readFileSync(path.join(folderPath, file));
-        const { text } = await pdfParse(buffer);
-        if (!text?.trim()) continue;
+        const { text: rawText } = await pdfParse(buffer);
+        if (!rawText?.trim()) continue;
 
+        const text = cleanPdfText(rawText);
         const chunks = chunkText(text);
         if (chunks.length === 0) continue;
 
