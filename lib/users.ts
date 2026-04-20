@@ -7,6 +7,7 @@ export interface DemoUser {
   role: UserRole;
   initials: string;
   color: string; // tailwind bg class
+  email: string;
 }
 
 export const DEMO_USERS: DemoUser[] = [
@@ -17,6 +18,7 @@ export const DEMO_USERS: DemoUser[] = [
     role: "compliance_officer",
     initials: "SC",
     color: "bg-violet-600",
+    email: "s.chen@lakewood-medical.org",
   },
   {
     id: "marcus",
@@ -25,6 +27,7 @@ export const DEMO_USERS: DemoUser[] = [
     role: "compliance_officer",
     initials: "MW",
     color: "bg-sky-600",
+    email: "m.williams@lakewood-medical.org",
   },
   {
     id: "priya",
@@ -33,5 +36,10 @@ export const DEMO_USERS: DemoUser[] = [
     role: "admin",
     initials: "PN",
     color: "bg-rose-600",
+    email: "p.nair@lakewood-medical.org",
   },
 ];
+
+export function getDemoUser(displayName: string): DemoUser | undefined {
+  return DEMO_USERS.find((u) => u.displayName === displayName);
+}

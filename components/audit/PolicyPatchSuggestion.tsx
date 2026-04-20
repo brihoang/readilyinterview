@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, ChevronRight, ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/lib/context/UserContext";
+import { UserHoverCard } from "@/components/ui/user-hover-card";
 import type { PolicyPatch } from "@/lib/store/types";
 
 interface Props {
@@ -151,7 +152,7 @@ export function PolicyPatchSuggestion({ auditId, questionId }: Props) {
               {accepted ? (
                 <div className="flex items-center gap-2 pt-1 text-xs text-emerald-700">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                  Patch accepted by {accepted.by} ·{" "}
+                  Patch accepted by <UserHoverCard name={accepted.by} /> ·{" "}
                   {new Date(accepted.at).toLocaleDateString()}
                 </div>
               ) : (

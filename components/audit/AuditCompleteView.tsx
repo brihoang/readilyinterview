@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { EvaluationRow } from "./EvaluationRow";
 import { CollapsibleSection } from "./CollapsibleSection";
+import { UserHoverCard } from "@/components/ui/user-hover-card";
 import type { Question, QuestionResult } from "@/lib/store/types";
 
 interface Props {
@@ -124,8 +125,12 @@ export function AuditCompleteView({
                 >
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span className="flex-1 text-slate-700">{q.text}</span>
-                  <span className="text-xs text-emerald-600">
-                    Marked compliant by {r.markedCompliantBy} ·{" "}
+                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                    Marked compliant by{" "}
+                    {r.markedCompliantBy ? (
+                      <UserHoverCard name={r.markedCompliantBy} />
+                    ) : null}
+                    {" "}·{" "}
                     {r.markedCompliantAt
                       ? new Date(r.markedCompliantAt).toLocaleDateString()
                       : ""}
