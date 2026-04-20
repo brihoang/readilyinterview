@@ -238,8 +238,8 @@ export function AuditCompleteView({
         </DialogContent>
       </Dialog>
 
-      {/* All-marked modal */}
-      {allMarked && !showRerunModal && (
+      {/* All-marked modal — only when marked compliant but not yet re-run */}
+      {allMarked && !allPassed && !showRerunModal && (
         <Dialog
           open={!allMarkedDismissed}
           onOpenChange={(open) => !open && setAllMarkedDismissed(true)}
