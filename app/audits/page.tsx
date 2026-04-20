@@ -8,6 +8,7 @@ import {
   Building2,
   Calendar,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,8 @@ const STATUS_CONFIG: Record<
   review: { label: "Review", variant: "warning" },
   ready: { label: "Ready", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
-  complete: { label: "Complete", variant: "success" },
+  complete: { label: "AI Verified", variant: "success" },
+  archived: { label: "Signed Off", variant: "success" },
   needs_review: { label: "Needs Review", variant: "warning" },
 };
 
@@ -163,6 +165,12 @@ export default function AuditsPage() {
                         {audit.name}
                       </h3>
                       <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                      {audit.archivedBy && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-700">
+                          <ShieldCheck className="h-3 w-3" />
+                          {audit.archivedBy}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">

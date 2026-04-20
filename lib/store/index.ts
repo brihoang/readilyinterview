@@ -199,6 +199,8 @@ class InMemoryStore {
         failCount: results.filter((r) => r.verdict === "fail").length,
         partialCount: results.filter((r) => r.verdict === "partial").length,
         iterationCount: a.iterationCount,
+        archivedBy: a.archivedBy,
+        archivedAt: a.archivedAt,
       };
     });
   }

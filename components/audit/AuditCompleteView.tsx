@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   RotateCcw,
   PartyPopper,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,10 @@ interface Props {
   onResultsModalClose: () => void;
   onMarkCompliant: (questionId: string, value: boolean) => void;
   onRerun: (mode: "all" | "failed-only") => void;
+  onArchive?: () => void;
+  isArchived?: boolean;
+  archivedBy?: string;
+  archivedAt?: string;
 }
 
 export function AuditCompleteView({
@@ -47,6 +52,10 @@ export function AuditCompleteView({
   onResultsModalClose,
   onMarkCompliant,
   onRerun,
+  onArchive,
+  isArchived,
+  archivedBy,
+  archivedAt,
 }: Props) {
   const [showRerunModal, setShowRerunModal] = useState(false);
   const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
@@ -72,15 +81,31 @@ export function AuditCompleteView({
             <XCircle className="h-4 w-4" /> {needsAttentionQuestions.length} need attention
           </span>
         </div>
-        <div className="ml-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowRerunModal(true)}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Re-run Audit
-          </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {isArchived ? (
+            <span className="flex items-center gap-1.5 text-sm text-emerald-700 font-medium">
+              <ShieldCheck className="h-4 w-4" />
+              Signed off by {archivedBy} ·{" "}
+              {archivedAt ? new Date(archivedAt).toLocaleDateString() : ""}
+            </span>
+          ) : (
+            <>
+              {allPassed && onArchive && (
+                <Button size="sm" onClick={onArchive}>
+                  <ShieldCheck className="h-4 w-4" />
+                  Sign Off Audit
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRerunModal(true)}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Re-run Audit
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -173,15 +198,26 @@ export function AuditCompleteView({
                   <PartyPopper className="h-12 w-12 text-amber-400" />
                 </div>
                 <DialogTitle className="text-center text-xl">
-                  All questions compliant!
+                  AI verification passed
                 </DialogTitle>
                 <DialogDescription className="text-center">
-                  Your policies satisfy all {questions.length} questionnaire
-                  requirements.
+                  All {questions.length} questions cleared by the AI. A compliance
+                  officer should review and sign off to officially close this audit.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="justify-center">
-                <Button onClick={onResultsModalClose}>View Full Report</Button>
+              <DialogFooter className="flex-col gap-2 sm:flex-col">
+                {onArchive && (
+                  <Button
+                    className="w-full"
+                    onClick={() => { onResultsModalClose(); onArchive(); }}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Sign Off &amp; Close Audit
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full" onClick={onResultsModalClose}>
+                  Review Report First
+                </Button>
               </DialogFooter>
             </>
           ) : (

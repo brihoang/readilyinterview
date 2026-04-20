@@ -26,7 +26,8 @@ type UIStatus =
   | "review"
   | "ready"
   | "evaluating"
-  | "complete";
+  | "complete"
+  | "archived";
 
 export function PrepWorkspace({ audit, onAuditChange }: Props) {
   const { currentUser } = useCurrentUser();
@@ -152,6 +153,17 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
       }
       setCurrentStatus("ready");
     }
+  }
+
+  async function handleArchive() {
+    await fetch(`/api/audits/${audit.id}/archive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archivedBy: currentUser.displayName }),
+    });
+    setCurrentStatus("archived");
+    onAuditChange();
+    toast.success("Audit signed off and archived.");
   }
 
   async function handleMarkCompliant(questionId: string, value: boolean) {
@@ -304,7 +316,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
     );
   }
 
-  if (currentStatus === "complete") {
+  if (currentStatus === "complete" || currentStatus === "archived") {
     return (
       <AuditCompleteView
         auditId={audit.id}
@@ -318,6 +330,10 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
         onResultsModalClose={() => setShowResultsModal(false)}
         onMarkCompliant={handleMarkCompliant}
         onRerun={handleRunEvaluation}
+        onArchive={handleArchive}
+        isArchived={currentStatus === "archived"}
+        archivedBy={audit.archivedBy}
+        archivedAt={audit.archivedAt}
       />
     );
   }
