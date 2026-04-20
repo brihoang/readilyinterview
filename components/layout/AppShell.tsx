@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Sidebar } from "./Sidebar";
-import { UserBadge } from "./UserBadge";
+import { UserSwitcher } from "./UserSwitcher";
+import { UserProvider } from "@/lib/context/UserContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <UserProvider>
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -44,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Trash2 className="h-3.5 w-3.5" />
             Clear Demo Data
           </Button>
-          <UserBadge />
+          <UserSwitcher />
         </header>
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
@@ -74,5 +76,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </DialogContent>
       </Dialog>
     </div>
+    </UserProvider>
   );
 }

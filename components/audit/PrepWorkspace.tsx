@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import type { Audit, Question, QuestionResult } from "@/lib/store/types";
+import { useCurrentUser } from "@/lib/context/UserContext";
 import { UploadModal } from "./UploadModal";
 import { RunAuditDialog } from "./RunAuditDialog";
 import { QuestionReview } from "./QuestionReview";
@@ -28,6 +29,7 @@ type UIStatus =
   | "complete";
 
 export function PrepWorkspace({ audit, onAuditChange }: Props) {
+  const { currentUser } = useCurrentUser();
   const [currentStatus, setCurrentStatus] = useState<UIStatus>(
     audit.status as UIStatus,
   );
@@ -163,7 +165,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
       [questionId]: {
         ...prev[questionId],
         markedCompliant: value,
-        markedCompliantBy: value ? "Sarah Chen" : undefined,
+        markedCompliantBy: value ? currentUser.displayName : undefined,
         markedCompliantAt: value ? new Date().toISOString() : undefined,
       },
     }));
