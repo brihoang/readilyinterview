@@ -13,9 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AuditSummary } from "@/lib/store/types";
+import { useCurrentUser } from "@/lib/context/UserContext";
 
 export default function TasksPage() {
   const router = useRouter();
+  const { currentUser } = useCurrentUser();
   const [audits, setAudits] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,9 @@ export default function TasksPage() {
   const outstanding = audits
     .filter(
       (a) =>
-        a.status === "complete" && (a.failCount + a.partialCount) > 0,
+        a.status === "complete" &&
+        (a.failCount + a.partialCount) > 0 &&
+        a.createdBy === currentUser.displayName,
     )
     .sort((a, b) => {
       // Sort by target date ascending (most urgent first)
