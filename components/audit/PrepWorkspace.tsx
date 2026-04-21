@@ -17,6 +17,7 @@ import { AuditCompleteView } from "./AuditCompleteView";
 interface Props {
   audit: Audit;
   onAuditChange: () => void;
+  onLiveStatusChange?: (status: string | null) => void;
 }
 
 type UIStatus =
@@ -29,7 +30,7 @@ type UIStatus =
   | "complete"
   | "archived";
 
-export function PrepWorkspace({ audit, onAuditChange }: Props) {
+export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Props) {
   const { currentUser } = useCurrentUser();
   const [currentStatus, setCurrentStatus] = useState<UIStatus>(
     audit.status as UIStatus,
@@ -43,6 +44,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
   const [liveResults, setLiveResults] = useState<Record<string, QuestionResult>>(
     audit.results ?? {},
   );
+  const [rerunningIds, setRerunningIds] = useState<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -90,6 +92,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
   async function handleRunEvaluation(runMode: "all" | "failed-only" = "all") {
     setShowRunDialog(false);
     setCurrentStatus("evaluating");
+    onLiveStatusChange?.("evaluating");
     setEvaluationProgress(0);
 
     const ctrl = new AbortController();
@@ -102,6 +105,14 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
             return !r || r.verdict === "fail" || r.verdict === "partial";
           })
         : questions;
+
+    const rerunIdSet = new Set(questionsToRun.map((q) => q.id));
+    setRerunningIds(rerunIdSet);
+    setLiveResults((prev) => {
+      const next = { ...prev };
+      for (const q of questionsToRun) delete next[q.id];
+      return next;
+    });
 
     let completed = 0;
 
@@ -131,6 +142,8 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
             if (parsed.done) {
               setCurrentStatus("complete");
               setShowResultsModal(true);
+              setRerunningIds(new Set());
+              onLiveStatusChange?.(null);
               onAuditChange();
               return;
             }
@@ -152,6 +165,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
         toast.error("Evaluation failed. Check your API key and try again.");
       }
       setCurrentStatus("ready");
+      onLiveStatusChange?.(null);
     }
   }
 
@@ -292,7 +306,10 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
   }
 
   if (currentStatus === "evaluating") {
-    const completed = Object.keys(liveResults).length;
+    const rerunQuestions = questions.filter((q) => rerunningIds.has(q.id));
+    const skippedQuestions = questions.filter((q) => !rerunningIds.has(q.id));
+    const completedCount = rerunQuestions.filter((q) => liveResults[q.id]).length;
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-2">
@@ -300,12 +317,12 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
             Evaluating questions…
           </h3>
           <span className="text-sm text-muted-foreground">
-            {completed} / {questions.length}
+            {completedCount} / {rerunQuestions.length}
           </span>
         </div>
         <Progress value={evaluationProgress} className="h-2" />
         <div className="space-y-2 mt-4">
-          {questions.map((q) => (
+          {rerunQuestions.map((q) => (
             <EvaluationRow
               key={q.id}
               question={q}
@@ -315,6 +332,28 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
             />
           ))}
         </div>
+        {skippedQuestions.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 pt-2">
+              <div className="flex-1 border-t" />
+              <span className="text-xs text-muted-foreground shrink-0">
+                Passing — not re-run ({skippedQuestions.length})
+              </span>
+              <div className="flex-1 border-t" />
+            </div>
+            <div className="space-y-2 opacity-50">
+              {skippedQuestions.map((q) => (
+                <EvaluationRow
+                  key={q.id}
+                  question={q}
+                  result={liveResults[q.id]}
+                  isEvaluating={false}
+                  auditId={audit.id}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     );
   }

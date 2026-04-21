@@ -91,6 +91,7 @@ export interface QuestionResult {
   sourceDocumentTitle: string;
   sourceSectionTitle: string;
   reasoning: string;
+  estimatedExposure?: { low: number; high: number };
   evaluatedAt: string;
   markedCompliant?: boolean;
   markedCompliantAt?: string;
@@ -114,6 +115,7 @@ export interface Audit {
   createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
+  stakeholders?: string[];
 }
 
 export interface AuditSummary {
@@ -133,6 +135,7 @@ export interface AuditSummary {
   createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
+  stakeholders?: string[];
 }
 
 // ── Policy Anticipator ────────────────────────────────────────────────────────

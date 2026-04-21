@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  DollarSign,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +46,16 @@ const verdictConfig: Record<
   },
 };
 
+function formatExposureRange({ low, high }: { low: number; high: number }) {
+  const fmt = (n: number) =>
+    n >= 1_000_000
+      ? `$${(n / 1_000_000).toFixed(1)}M`
+      : n >= 1_000
+        ? `$${(n / 1_000).toFixed(0)}K`
+        : `$${n.toLocaleString()}`;
+  return `${fmt(low)} – ${fmt(high)}`;
+}
+
 export function EvaluationRow({
   question,
   result,
@@ -52,6 +63,7 @@ export function EvaluationRow({
   showMarkCompliant,
   onMarkCompliant,
   auditId,
+  autoFix,
 }: {
   question: Question;
   result?: QuestionResult;
@@ -59,8 +71,13 @@ export function EvaluationRow({
   showMarkCompliant?: boolean;
   onMarkCompliant?: (v: boolean) => void;
   auditId?: string;
+  autoFix?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (autoFix && result && result.verdict !== "pass") setExpanded(true);
+  }, [autoFix, result]);
 
   const verdict = result?.verdict ?? "pending";
   const cfg = verdictConfig[verdict];
@@ -158,12 +175,27 @@ export function EvaluationRow({
               <p className="text-slate-600">{result.reasoning}</p>
             </div>
 
+            {result.estimatedExposure && result.verdict !== "pass" && (
+              <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3">
+                <DollarSign className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-0.5">
+                    Estimated Financial Exposure
+                  </p>
+                  <p className="text-red-700 font-semibold">
+                    {formatExposureRange(result.estimatedExposure)}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {auditId &&
               (result.verdict === "fail" || result.verdict === "partial") && (
                 <PolicyPatchSuggestion
                   auditId={auditId}
                   questionId={question.id}
                   onMarkCompliant={onMarkCompliant}
+                  autoFetch={autoFix}
                 />
               )}
           </div>

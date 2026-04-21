@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Calendar, RotateCcw } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PrepWorkspace } from "@/components/audit/PrepWorkspace";
 import type { Audit, ComplianceFramework } from "@/lib/store/types";
 import { Input } from "@/components/ui/input";
@@ -63,6 +71,9 @@ export default function AuditDetailPage() {
   const router = useRouter();
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function fetchAudit() {
     fetch(`/api/audits/${id}`)
@@ -75,6 +86,12 @@ export default function AuditDetailPage() {
     fetchAudit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    await fetch(`/api/audits/${id}`, { method: "DELETE" });
+    router.push("/audits");
+  }
 
   if (loading) {
     return (
@@ -100,7 +117,9 @@ export default function AuditDetailPage() {
     );
   }
 
-  const cfg = getDisplayStatus(audit);
+  const cfg = liveStatus
+    ? (STATUS_CONFIG[liveStatus] ?? STATUS_CONFIG.idle)
+    : getDisplayStatus(audit);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -148,6 +167,15 @@ export default function AuditDetailPage() {
             )}
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+          onClick={() => setShowDeleteDialog(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -158,13 +186,50 @@ export default function AuditDetailPage() {
         </TabsList>
 
         <TabsContent value="prep">
-          <PrepWorkspace audit={audit} onAuditChange={fetchAudit} />
+          <PrepWorkspace
+            audit={audit}
+            onAuditChange={() => { setLiveStatus(null); fetchAudit(); }}
+            onLiveStatusChange={setLiveStatus}
+          />
         </TabsContent>
 
         <TabsContent value="details">
           <DetailsTab audit={audit} onSave={fetchAudit} />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete audit?</DialogTitle>
+            <DialogDescription>
+              {audit.questions.length > 0 ? (
+                <>
+                  <span className="block mb-2">
+                    This audit has{" "}
+                    <strong>{audit.questions.length} question{audit.questions.length !== 1 ? "s" : ""}</strong>
+                    {Object.keys(audit.results).length > 0
+                      ? ` and ${Object.keys(audit.results).length} AI evaluation result${Object.keys(audit.results).length !== 1 ? "s" : ""}`
+                      : ""}{" "}
+                    that will be permanently lost.
+                  </span>
+                  This cannot be undone.
+                </>
+              ) : (
+                "This will permanently delete the audit. This cannot be undone."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Audit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -192,12 +257,24 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
 
   return (
     <div className="max-w-lg space-y-4">
-      {audit.createdBy && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground pb-2 border-b">
-          <span>Created by</span>
-          <UserHoverCard name={audit.createdBy} />
-          <span>·</span>
-          <span>{new Date(audit.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+      {(audit.createdBy || (audit.stakeholders && audit.stakeholders.length > 0)) && (
+        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground pb-3 border-b">
+          {audit.createdBy && (
+            <div className="flex items-center gap-2">
+              <span>Created by</span>
+              <UserHoverCard name={audit.createdBy} />
+              <span>·</span>
+              <span>{new Date(audit.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+            </div>
+          )}
+          {audit.stakeholders && audit.stakeholders.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>Stakeholders</span>
+              {audit.stakeholders.map((name) => (
+                <UserHoverCard key={name} name={name} />
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div className="space-y-1.5">

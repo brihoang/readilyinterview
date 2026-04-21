@@ -308,6 +308,7 @@ class InMemoryStore {
     targetDate: string;
     notes: string;
     createdBy?: string;
+    stakeholders?: string[];
   }): Promise<Audit> {
     const id = nanoid();
     const audit: Audit = {
@@ -349,6 +350,7 @@ class InMemoryStore {
         createdBy: a.createdBy,
         archivedBy: a.archivedBy,
         archivedAt: a.archivedAt,
+        stakeholders: a.stakeholders,
       };
     });
   }

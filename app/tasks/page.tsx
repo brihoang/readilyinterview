@@ -13,9 +13,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AuditSummary } from "@/lib/store/types";
+import { useCurrentUser } from "@/lib/context/UserContext";
+
+const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info" | "warning" | "secondary" }> = {
+  idle: { label: "Draft", variant: "secondary" },
+  review: { label: "In Review", variant: "warning" },
+  ready: { label: "Ready", variant: "info" },
+  evaluating: { label: "Evaluating", variant: "warning" },
+  complete: { label: "Needs Review", variant: "warning" },
+};
+
+function getStatusConfig(a: AuditSummary) {
+  if (a.status === "complete" && (a.failCount + a.partialCount) === 0) {
+    return { label: "AI Verified", variant: "success" as const };
+  }
+  return STATUS_CONFIG[a.status] ?? STATUS_CONFIG.idle;
+}
 
 export default function TasksPage() {
   const router = useRouter();
+  const { currentUser } = useCurrentUser();
   const [audits, setAudits] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +46,12 @@ export default function TasksPage() {
   const outstanding = audits
     .filter(
       (a) =>
-        a.status === "complete" && (a.failCount + a.partialCount) > 0,
+        a.status !== "archived" &&
+        (
+          !a.createdBy ||
+          a.createdBy === currentUser.displayName ||
+          a.stakeholders?.includes(currentUser.displayName)
+        ),
     )
     .sort((a, b) => {
       // Sort by target date ascending (most urgent first)
@@ -60,7 +82,7 @@ export default function TasksPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Outstanding Tasks</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Audits with unresolved compliance issues
+          Your active audits and unresolved compliance issues
         </p>
       </div>
 
@@ -81,6 +103,8 @@ export default function TasksPage() {
         <div className="space-y-3">
           {outstanding.map((audit) => {
             const issueCount = audit.failCount + audit.partialCount;
+            const hasIssues = audit.status === "complete" && issueCount > 0;
+            const statusCfg = getStatusConfig(audit);
             const daysUntil = audit.targetDate
               ? Math.ceil(
                   (new Date(audit.targetDate).getTime() - Date.now()) /
@@ -107,6 +131,9 @@ export default function TasksPage() {
                       <h3 className="font-semibold text-slate-800 truncate">
                         {audit.name}
                       </h3>
+                      <Badge variant={statusCfg.variant} className="shrink-0">
+                        {statusCfg.label}
+                      </Badge>
                       <Badge variant="outline" className="text-xs shrink-0">
                         {audit.framework}
                       </Badge>
@@ -144,12 +171,14 @@ export default function TasksPage() {
                   </div>
 
                   <div className="flex items-center gap-4 shrink-0">
-                    <div className="flex items-center gap-1.5 text-red-700">
-                      <XCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {issueCount}/{audit.questionCount} need attention
-                      </span>
-                    </div>
+                    {hasIssues && (
+                      <div className="flex items-center gap-1.5 text-red-700">
+                        <XCircle className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          {issueCount}/{audit.questionCount} need attention
+                        </span>
+                      </div>
+                    )}
                     {urgency === "high" && (
                       <AlertTriangle className="h-4 w-4 text-red-500" />
                     )}
