@@ -83,6 +83,7 @@ export async function ensureSeeded(): Promise<void> {
       console.log(
         `[seed] Loaded ${docs.length} policy documents from precomputed cache`,
       );
+      await store.replayPersistedPatches();
       seeded = true;
       return;
     }
@@ -136,6 +137,7 @@ export async function ensureSeeded(): Promise<void> {
     }
 
     console.log(`[seed] Loaded ${loaded} policy documents`);
+    await store.replayPersistedPatches();
     seeded = true;
   } finally {
     seeding = false;

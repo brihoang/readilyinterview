@@ -47,6 +47,51 @@ async function kvClear(): Promise<void> {
   }
 }
 
+async function kvWritePatches(docId: string, patches: AcceptedPatch[]): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`patch:${docId}`, JSON.stringify(patches));
+    await redis.sadd("patched_doc_ids", docId);
+  } catch (e) {
+    console.warn("[store] Redis patch write failed:", e);
+  }
+}
+
+async function kvLoadAllPatches(): Promise<Record<string, AcceptedPatch[]>> {
+  const redis = getRedis();
+  if (!redis) return {};
+  try {
+    const ids: string[] = await redis.smembers("patched_doc_ids");
+    if (ids.length === 0) return {};
+    const raw = await Promise.all(ids.map((id) => redis.get(`patch:${id}`)));
+    const result: Record<string, AcceptedPatch[]> = {};
+    for (let i = 0; i < ids.length; i++) {
+      const entry = raw[i];
+      if (!entry) continue;
+      result[ids[i]] = typeof entry === "string" ? JSON.parse(entry) : entry;
+    }
+    return result;
+  } catch (e) {
+    console.warn("[store] Redis patch load failed:", e);
+    return {};
+  }
+}
+
+async function kvClearPatches(): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    const ids: string[] = await redis.smembers("patched_doc_ids");
+    if (ids.length > 0) {
+      await Promise.all(ids.map((id) => redis.del(`patch:${id}`)));
+    }
+    await redis.del("patched_doc_ids");
+  } catch (e) {
+    console.warn("[store] Redis patch clear failed:", e);
+  }
+}
+
 class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
@@ -111,10 +156,10 @@ class InMemoryStore {
     return this.policyDocuments.size > 0;
   }
 
-  patchPolicyDocument(
+  async patchPolicyDocument(
     docId: string,
     patch: Omit<AcceptedPatch, "acceptedAt">,
-  ): PolicyDocument | undefined {
+  ): Promise<PolicyDocument | undefined> {
     const doc = this.policyDocuments.get(docId);
     if (!doc) return undefined;
 
@@ -151,7 +196,29 @@ class InMemoryStore {
     };
 
     this.policyDocuments.set(docId, updatedDoc);
+    await kvWritePatches(docId, updatedDoc.patches!);
     return updatedDoc;
+  }
+
+  async replayPersistedPatches(): Promise<void> {
+    const allPatches = await kvLoadAllPatches();
+    const docIds = Object.keys(allPatches);
+    if (docIds.length === 0) return;
+    for (const docId of docIds) {
+      for (const patch of allPatches[docId]) {
+        await this.patchPolicyDocument(docId, patch);
+      }
+    }
+    console.log(`[store] Replayed patches for ${docIds.length} policy document(s)`);
+  }
+
+  async clearPatches(): Promise<void> {
+    for (const [id, doc] of Array.from(this.policyDocuments.entries())) {
+      if (doc.isPatched) {
+        this.policyDocuments.set(id, { ...doc, isPatched: false, patches: [] });
+      }
+    }
+    await kvClearPatches();
   }
 
   // --- Audits ---

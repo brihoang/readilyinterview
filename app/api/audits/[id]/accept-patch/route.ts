@@ -28,7 +28,7 @@ export async function POST(
     );
   }
 
-  const updated = store.patchPolicyDocument(sourceDocumentId, {
+  const updated = await store.patchPolicyDocument(sourceDocumentId, {
     originalText,
     patchedText,
     reasoning,
