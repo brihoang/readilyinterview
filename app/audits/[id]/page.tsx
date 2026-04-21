@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Calendar, RotateCcw } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PrepWorkspace } from "@/components/audit/PrepWorkspace";
 import type { Audit, ComplianceFramework } from "@/lib/store/types";
 import { Input } from "@/components/ui/input";
@@ -64,6 +72,8 @@ export default function AuditDetailPage() {
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function fetchAudit() {
     fetch(`/api/audits/${id}`)
@@ -76,6 +86,12 @@ export default function AuditDetailPage() {
     fetchAudit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    await fetch(`/api/audits/${id}`, { method: "DELETE" });
+    router.push("/audits");
+  }
 
   if (loading) {
     return (
@@ -151,6 +167,15 @@ export default function AuditDetailPage() {
             )}
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+          onClick={() => setShowDeleteDialog(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -172,6 +197,39 @@ export default function AuditDetailPage() {
           <DetailsTab audit={audit} onSave={fetchAudit} />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete audit?</DialogTitle>
+            <DialogDescription>
+              {audit.questions.length > 0 ? (
+                <>
+                  <span className="block mb-2">
+                    This audit has{" "}
+                    <strong>{audit.questions.length} question{audit.questions.length !== 1 ? "s" : ""}</strong>
+                    {Object.keys(audit.results).length > 0
+                      ? ` and ${Object.keys(audit.results).length} AI evaluation result${Object.keys(audit.results).length !== 1 ? "s" : ""}`
+                      : ""}{" "}
+                    that will be permanently lost.
+                  </span>
+                  This cannot be undone.
+                </>
+              ) : (
+                "This will permanently delete the audit. This cannot be undone."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Audit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
