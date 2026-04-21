@@ -98,7 +98,11 @@ export function RegulationCard({
         )}
 
         {recommendation && !inProgress && (
-          <GapList recommendation={recommendation} />
+          <GapList
+            recommendation={recommendation}
+            regulationId={doc.id}
+            regulationTitle={doc.title}
+          />
         )}
       </CardContent>
     </Card>
