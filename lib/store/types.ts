@@ -91,6 +91,7 @@ export interface QuestionResult {
   sourceDocumentTitle: string;
   sourceSectionTitle: string;
   reasoning: string;
+  estimatedExposure?: { low: number; high: number };
   evaluatedAt: string;
   markedCompliant?: boolean;
   markedCompliantAt?: string;

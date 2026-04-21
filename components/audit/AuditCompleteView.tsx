@@ -8,6 +8,7 @@ import {
   RotateCcw,
   PartyPopper,
   ShieldCheck,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +73,28 @@ export function AuditCompleteView({
     return r.verdict !== "pass" && !r.markedCompliant;
   });
 
+  const totalExposure = questions.reduce(
+    (acc, q) => {
+      const r = liveResults[q.id];
+      if (!r?.estimatedExposure || r.verdict === "pass") return acc;
+      return {
+        low: acc.low + r.estimatedExposure.low,
+        high: acc.high + r.estimatedExposure.high,
+      };
+    },
+    { low: 0, high: 0 },
+  );
+
+  function formatExposureRange({ low, high }: { low: number; high: number }) {
+    const fmt = (n: number) =>
+      n >= 1_000_000
+        ? `$${(n / 1_000_000).toFixed(1)}M`
+        : n >= 1_000
+          ? `$${(n / 1_000).toFixed(0)}K`
+          : `$${n.toLocaleString()}`;
+    return `${fmt(low)} – ${fmt(high)}`;
+  }
+
   return (
     <>
       {/* Results summary bar */}
@@ -83,6 +106,12 @@ export function AuditCompleteView({
           <span className="flex items-center gap-1.5 text-red-700 font-medium">
             <XCircle className="h-4 w-4" /> {needsAttentionQuestions.length} need attention
           </span>
+          {totalExposure.high > 0 && (
+            <span className="flex items-center gap-1.5 text-red-700 font-medium border-l pl-4">
+              <DollarSign className="h-4 w-4" />
+              {formatExposureRange(totalExposure)} estimated exposure
+            </span>
+          )}
         </div>
         <div className="ml-auto flex items-center gap-2">
           {isArchived ? (
@@ -244,6 +273,12 @@ export function AuditCompleteView({
                 <DialogDescription className="text-center">
                   {passCount} of {questions.length} questions passed. Review the
                   gaps below to update your policies before the audit.
+                  {totalExposure.high > 0 && (
+                    <span className="block mt-2 font-medium text-red-700">
+                      Estimated exposure:{" "}
+                      {formatExposureRange(totalExposure)}
+                    </span>
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="justify-center">

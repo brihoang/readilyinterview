@@ -14,6 +14,16 @@ const EvalSchema = z.object({
   reasoning: z
     .string()
     .describe("1-3 sentences explaining why this verdict was reached."),
+  estimatedExposure: z
+    .object({ low: z.number(), high: z.number() })
+    .nullable()
+    .describe(
+      "Estimated regulatory financial exposure in USD for this finding. " +
+        "Null for pass verdicts. " +
+        "For fail/partial, base on known penalty structures: HIPAA $100–$1,900,000 per violation category, " +
+        "CMS Conditions of Participation up to $10,000/day, Joint Commission varies by deficiency level. " +
+        "low = minimum likely fine, high = maximum realistic fine.",
+    ),
 });
 
 export async function evaluateQuestion(
@@ -44,7 +54,11 @@ Verdict rules:
 - "fail": The policies do not address the requirement, or actively contradict it
 
 If you found a relevant policy passage, quote it EXACTLY (do not paraphrase) in evidenceText.
-If no relevant policy was found, set evidenceText to empty string and verdict to "fail".`,
+If no relevant policy was found, set evidenceText to empty string and verdict to "fail".
+
+Financial exposure rules:
+- "pass": set estimatedExposure to null
+- "fail"/"partial": estimate a realistic USD penalty range based on the question category and known regulatory fine structures (HIPAA, CMS CoP, Joint Commission, etc.)`,
     prompt: `AUDIT QUESTION (${question.category}):\n${question.text}\n\nRELEVANT POLICY EXCERPTS:\n${policyContext}`,
   });
 
@@ -75,6 +89,7 @@ If no relevant policy was found, set evidenceText to empty string and verdict to
     sourceDocumentTitle,
     sourceSectionTitle,
     reasoning: object.reasoning,
+    estimatedExposure: object.estimatedExposure ?? undefined,
     evaluatedAt: new Date().toISOString(),
   };
 }
