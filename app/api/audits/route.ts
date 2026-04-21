@@ -9,7 +9,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   await store.ensureAuditsLoaded();
   const body = await req.json();
-  const { name, organization, framework, targetDate, notes, createdBy } = body;
+  const { name, organization, framework, targetDate, notes, createdBy, stakeholders } = body;
 
   if (!name || !organization || !framework) {
     return NextResponse.json(
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     targetDate: targetDate ?? "",
     notes: notes ?? "",
     createdBy: createdBy ?? undefined,
+    stakeholders: stakeholders ?? [],
   });
 
   await store.addActivity({

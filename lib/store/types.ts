@@ -115,6 +115,7 @@ export interface Audit {
   createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
+  stakeholders?: string[];
 }
 
 export interface AuditSummary {
@@ -134,4 +135,5 @@ export interface AuditSummary {
   createdBy?: string;
   archivedBy?: string;
   archivedAt?: string;
+  stakeholders?: string[];
 }

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/context/UserContext";
+import { DEMO_USERS } from "@/lib/users";
 import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
 const FRAMEWORKS: ComplianceFramework[] = [
@@ -92,6 +93,9 @@ export default function AuditsPage() {
     targetDate: "",
     notes: "",
   });
+  const [stakeholders, setStakeholders] = useState<string[]>([]);
+  const [stakeholderSearch, setStakeholderSearch] = useState("");
+  const [stakeholderOpen, setStakeholderOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/audits")
@@ -107,7 +111,7 @@ export default function AuditsPage() {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, createdBy: currentUser.displayName }),
+        body: JSON.stringify({ ...form, createdBy: currentUser.displayName, stakeholders }),
       });
       const data = await res.json();
       router.push(`/audits/${data.audit.id}`);
@@ -361,11 +365,11 @@ export default function AuditsPage() {
 
       {/* Create dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Create New Audit</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 px-1">
             <div className="space-y-1.5">
               <Label>Audit Name *</Label>
               <Input
@@ -430,9 +434,80 @@ export default function AuditsPage() {
                 }
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>Stakeholders <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <div className="relative">
+                <Input
+                  placeholder="Search users…"
+                  value={stakeholderSearch}
+                  onChange={(e) => { setStakeholderSearch(e.target.value); setStakeholderOpen(true); }}
+                  onFocus={() => setStakeholderOpen(true)}
+                  onBlur={() => setTimeout(() => setStakeholderOpen(false), 150)}
+                  autoComplete="off"
+                />
+                {stakeholderOpen && (() => {
+                  const opts = DEMO_USERS.filter(
+                    (u) =>
+                      u.displayName !== currentUser.displayName &&
+                      !stakeholders.includes(u.displayName) &&
+                      u.displayName.toLowerCase().includes(stakeholderSearch.toLowerCase()),
+                  );
+                  return opts.length > 0 ? (
+                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-md">
+                      {opts.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent text-left"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setStakeholders((prev) => [...prev, u.displayName]);
+                            setStakeholderSearch("");
+                            setStakeholderOpen(false);
+                          }}
+                        >
+                          <span className={cn("h-6 w-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0", u.color)}>
+                            {u.initials}
+                          </span>
+                          <div>
+                            <p className="font-medium text-slate-800">{u.displayName}</p>
+                            <p className="text-xs text-muted-foreground">{u.title}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+              {stakeholders.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {stakeholders.map((name) => {
+                    const u = DEMO_USERS.find((u) => u.displayName === name);
+                    return (
+                      <span key={name} className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-slate-100 border text-xs font-medium text-slate-700">
+                        {u && (
+                          <span className={cn("h-4 w-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center shrink-0", u.color)}>
+                            {u.initials}
+                          </span>
+                        )}
+                        {name}
+                        <button
+                          type="button"
+                          className="ml-0.5 text-muted-foreground hover:text-red-500"
+                          onClick={() => setStakeholders((prev) => prev.filter((n) => n !== name))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Stakeholders will see this audit in their Outstanding Tasks.</p>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => { setOpen(false); setStakeholders([]); setStakeholderSearch(""); setStakeholderOpen(false); }}>
               Cancel
             </Button>
             <Button

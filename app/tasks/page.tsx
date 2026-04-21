@@ -47,7 +47,11 @@ export default function TasksPage() {
     .filter(
       (a) =>
         a.status !== "archived" &&
-        a.createdBy === currentUser.displayName,
+        (
+          !a.createdBy ||
+          a.createdBy === currentUser.displayName ||
+          a.stakeholders?.includes(currentUser.displayName)
+        ),
     )
     .sort((a, b) => {
       // Sort by target date ascending (most urgent first)
