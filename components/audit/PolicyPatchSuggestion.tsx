@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, ChevronRight, ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser } from "@/lib/context/UserContext";
 import { UserHoverCard } from "@/components/ui/user-hover-card";
 import type { PolicyPatch } from "@/lib/store/types";
@@ -19,6 +20,7 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
   const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [patch, setPatch] = useState<PolicyPatch | null>(null);
+  const [editedText, setEditedText] = useState<string>("");
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState<{ by: string; at: string } | null>(null);
 
@@ -42,6 +44,7 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
       }
       const data: PolicyPatch = await res.json();
       setPatch(data);
+      setEditedText(data.patchedText);
       setStatus("loaded");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
@@ -59,7 +62,7 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
         body: JSON.stringify({
           questionId,
           originalText: patch.originalText,
-          patchedText: patch.patchedText,
+          patchedText: editedText,
           reasoning: patch.reasoning,
           acceptedBy: currentUser.displayName,
         }),
@@ -142,9 +145,12 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                   Suggested Update
                 </p>
-                <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-slate-700 leading-relaxed">
-                  {patch.patchedText}
-                </div>
+                <Textarea
+                  value={editedText}
+                  onChange={(e) => setEditedText(e.target.value)}
+                  rows={6}
+                  className="text-sm font-mono bg-green-50 border-green-200 focus-visible:ring-green-300"
+                />
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -163,7 +169,7 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
                     size="sm"
                     className="h-7 text-xs"
                     onClick={handleAccept}
-                    disabled={accepting}
+                    disabled={accepting || !editedText.trim()}
                   >
                     {accepting && <Loader2 className="h-3 w-3 animate-spin" />}
                     Patch & Mark Compliant
