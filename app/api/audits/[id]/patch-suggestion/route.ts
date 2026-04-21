@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
+import { ensureSeeded } from "@/lib/seed";
 import { generatePolicySuggestion } from "@/lib/ai/generatePolicySuggestion";
 
 export async function POST(
@@ -7,6 +8,7 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   await store.ensureAuditsLoaded();
+  await ensureSeeded();
 
   const audit = store.getAudit(params.id);
   if (!audit)

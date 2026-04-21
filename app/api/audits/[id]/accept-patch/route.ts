@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
+import { ensureSeeded } from "@/lib/seed";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
   await store.ensureAuditsLoaded();
+  await ensureSeeded();
 
   const audit = store.getAudit(params.id);
   if (!audit)
