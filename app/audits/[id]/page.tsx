@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PrepWorkspace } from "@/components/audit/PrepWorkspace";
+import { ActionItemsTab } from "@/components/audit/ActionItemsTab";
 import type { Audit, ComplianceFramework } from "@/lib/store/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -182,6 +183,7 @@ export default function AuditDetailPage() {
       <Tabs defaultValue="prep">
         <TabsList className="mb-6">
           <TabsTrigger value="prep">Prep</TabsTrigger>
+          <TabsTrigger value="actions">Action Items</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
         </TabsList>
 
@@ -191,6 +193,10 @@ export default function AuditDetailPage() {
             onAuditChange={() => { setLiveStatus(null); fetchAudit(); }}
             onLiveStatusChange={setLiveStatus}
           />
+        </TabsContent>
+
+        <TabsContent value="actions">
+          <ActionItemsTab auditId={audit.id} auditName={audit.name} />
         </TabsContent>
 
         <TabsContent value="details">

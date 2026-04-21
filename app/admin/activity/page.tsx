@@ -24,6 +24,8 @@ const ACTION_LABELS: Record<ActivityAction, string> = {
   question_marked_compliant: "Marked Compliant",
   question_unmarked_compliant: "Unmarked Compliant",
   audit_signed_off: "Audit Signed Off",
+  action_item_created: "Action Item Created",
+  action_item_completed: "Action Item Completed",
 };
 
 const ACTION_VARIANTS: Record<ActivityAction, "success" | "info" | "warning" | "secondary"> = {
@@ -34,6 +36,8 @@ const ACTION_VARIANTS: Record<ActivityAction, "success" | "info" | "warning" | "
   question_marked_compliant: "success",
   question_unmarked_compliant: "secondary",
   audit_signed_off: "success",
+  action_item_created: "info",
+  action_item_completed: "success",
 };
 
 export default function ActivityLogPage() {

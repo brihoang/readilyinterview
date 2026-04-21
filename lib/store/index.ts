@@ -7,6 +7,7 @@ import type {
   AcceptedPatch,
   ActivityEntry,
   ActivityAction,
+  ActionItem,
   FederalDocument,
   PolicyRecommendation,
 } from "./types";
@@ -154,6 +155,44 @@ async function kvWriteFedDoc(id: string, doc: FederalDocument): Promise<void> {
   }
 }
 
+async function kvWriteActionItem(item: ActionItem): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`action_item:${item.id}`, JSON.stringify(item));
+    await redis.sadd("action_item_ids", item.id);
+  } catch (e) {
+    console.warn("[store] Redis action item write failed:", e);
+  }
+}
+
+async function kvDeleteActionItem(id: string): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.del(`action_item:${id}`);
+    await redis.srem("action_item_ids", id);
+  } catch (e) {
+    console.warn("[store] Redis action item delete failed:", e);
+  }
+}
+
+async function kvLoadActionItems(): Promise<ActionItem[]> {
+  const redis = getRedis();
+  if (!redis) return [];
+  try {
+    const ids: string[] = await redis.smembers("action_item_ids");
+    if (ids.length === 0) return [];
+    const raw = await Promise.all(ids.map((id) => redis.get(`action_item:${id}`)));
+    return raw
+      .filter(Boolean)
+      .map((e) => (typeof e === "string" ? JSON.parse(e) : e) as ActionItem);
+  } catch (e) {
+    console.warn("[store] Redis action items load failed:", e);
+    return [];
+  }
+}
+
 async function kvWriteRec(documentId: string, rec: PolicyRecommendation): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
@@ -175,6 +214,8 @@ class InMemoryStore {
   private recommendations: Map<string, PolicyRecommendation> = new Map();
   private anticipatorLoaded = false;
   private anticipatorLoading = false;
+  private actionItems: Map<string, ActionItem> = new Map();
+  private actionItemsLoaded = false;
 
   // Load audits from Redis on cold start
   async ensureAuditsLoaded(): Promise<void> {
@@ -492,10 +533,57 @@ class InMemoryStore {
   getAllRecommendations(): PolicyRecommendation[] {
     return Array.from(this.recommendations.values());
   }
+
+  // --- Action Items ---
+
+  async ensureActionItemsLoaded(): Promise<void> {
+    if (this.actionItemsLoaded) return;
+    const items = await kvLoadActionItems();
+    for (const item of items) this.actionItems.set(item.id, item);
+    this.actionItemsLoaded = true;
+    console.log(`[store] Loaded ${this.actionItems.size} action items from Redis`);
+  }
+
+  async createActionItem(data: Omit<ActionItem, "id" | "createdAt" | "status">): Promise<ActionItem> {
+    const item: ActionItem = {
+      ...data,
+      id: nanoid(),
+      createdAt: new Date().toISOString(),
+      status: "open",
+    };
+    this.actionItems.set(item.id, item);
+    await kvWriteActionItem(item);
+    return item;
+  }
+
+  getActionItem(id: string): ActionItem | undefined {
+    return this.actionItems.get(id);
+  }
+
+  getActionItems(auditId?: string): ActionItem[] {
+    const all = Array.from(this.actionItems.values());
+    if (auditId) return all.filter((i) => i.auditId === auditId);
+    return all;
+  }
+
+  async updateActionItem(id: string, updates: Partial<ActionItem>): Promise<ActionItem | undefined> {
+    const item = this.actionItems.get(id);
+    if (!item) return undefined;
+    const updated = { ...item, ...updates };
+    this.actionItems.set(id, updated);
+    await kvWriteActionItem(updated);
+    return updated;
+  }
+
+  async deleteActionItem(id: string): Promise<boolean> {
+    const deleted = this.actionItems.delete(id);
+    await kvDeleteActionItem(id);
+    return deleted;
+  }
 }
 
 // Version bump whenever new methods are added — forces singleton recreation on hot reload
-const STORE_VERSION = 2;
+const STORE_VERSION = 3;
 
 const globalForStore = globalThis as unknown as {
   store?: InMemoryStore;

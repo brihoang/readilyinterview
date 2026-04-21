@@ -5,7 +5,9 @@ export type ActivityAction =
   | "policy_patched"
   | "question_marked_compliant"
   | "question_unmarked_compliant"
-  | "audit_signed_off";
+  | "audit_signed_off"
+  | "action_item_created"
+  | "action_item_completed";
 
 export interface ActivityEntry {
   id: string;
@@ -136,6 +138,19 @@ export interface AuditSummary {
   archivedBy?: string;
   archivedAt?: string;
   stakeholders?: string[];
+}
+
+export interface ActionItem {
+  id: string;
+  auditId?: string;
+  auditName?: string;
+  text: string;
+  createdBy: string;
+  assignedTo: string;
+  createdAt: string;
+  completedAt?: string;
+  completedBy?: string;
+  status: "open" | "completed";
 }
 
 // ── Policy Anticipator ────────────────────────────────────────────────────────
