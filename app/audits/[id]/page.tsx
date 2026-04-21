@@ -63,6 +63,7 @@ export default function AuditDetailPage() {
   const router = useRouter();
   const [audit, setAudit] = useState<Audit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
 
   function fetchAudit() {
     fetch(`/api/audits/${id}`)
@@ -100,7 +101,9 @@ export default function AuditDetailPage() {
     );
   }
 
-  const cfg = getDisplayStatus(audit);
+  const cfg = liveStatus
+    ? (STATUS_CONFIG[liveStatus] ?? STATUS_CONFIG.idle)
+    : getDisplayStatus(audit);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -158,7 +161,11 @@ export default function AuditDetailPage() {
         </TabsList>
 
         <TabsContent value="prep">
-          <PrepWorkspace audit={audit} onAuditChange={fetchAudit} />
+          <PrepWorkspace
+            audit={audit}
+            onAuditChange={() => { setLiveStatus(null); fetchAudit(); }}
+            onLiveStatusChange={setLiveStatus}
+          />
         </TabsContent>
 
         <TabsContent value="details">
