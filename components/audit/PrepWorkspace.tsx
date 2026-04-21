@@ -306,9 +306,13 @@ export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Prop
   }
 
   if (currentStatus === "evaluating") {
-    const rerunQuestions = questions.filter((q) => rerunningIds.has(q.id));
-    const skippedQuestions = questions.filter((q) => !rerunningIds.has(q.id));
+    // rerunningIds is empty when the user navigates away and back mid-evaluation.
+    // Fall back to treating all questions as rerunning so the view isn't blank.
+    const effectiveIds = rerunningIds.size > 0 ? rerunningIds : new Set(questions.map((q) => q.id));
+    const rerunQuestions = questions.filter((q) => effectiveIds.has(q.id));
+    const skippedQuestions = questions.filter((q) => !effectiveIds.has(q.id));
     const completedCount = rerunQuestions.filter((q) => liveResults[q.id]).length;
+    const progressValue = rerunQuestions.length > 0 ? Math.round((completedCount / rerunQuestions.length) * 100) : evaluationProgress;
 
     return (
       <div className="space-y-4">
@@ -320,7 +324,7 @@ export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Prop
             {completedCount} / {rerunQuestions.length}
           </span>
         </div>
-        <Progress value={evaluationProgress} className="h-2" />
+        <Progress value={progressValue} className="h-2" />
         <div className="space-y-2 mt-4">
           {rerunQuestions.map((q) => (
             <EvaluationRow
