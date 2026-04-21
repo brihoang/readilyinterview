@@ -41,5 +41,13 @@ export async function POST(
       { status: 404 },
     );
 
+  await store.addActivity({
+    action: "policy_patched",
+    actor: acceptedBy ?? "Unknown",
+    auditId: params.id,
+    auditName: audit.name,
+    details: `Patched policy: ${updated.title}`,
+  });
+
   return NextResponse.json({ success: true, documentId: sourceDocumentId });
 }

@@ -81,7 +81,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
     await fetch(`/api/audits/${audit.id}/questions`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questions }),
+      body: JSON.stringify({ questions, actor: currentUser.displayName }),
     });
     setCurrentStatus("ready");
     setShowRunDialog(true);
@@ -109,7 +109,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
       const res = await fetch(`/api/audits/${audit.id}/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ runMode }),
+        body: JSON.stringify({ runMode, actor: currentUser.displayName }),
         signal: ctrl.signal,
       });
 
@@ -170,7 +170,7 @@ export function PrepWorkspace({ audit, onAuditChange }: Props) {
     await fetch(`/api/audits/${audit.id}/results`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionId, markedCompliant: value }),
+      body: JSON.stringify({ questionId, markedCompliant: value, actor: currentUser.displayName }),
     });
     setLiveResults((prev) => ({
       ...prev,

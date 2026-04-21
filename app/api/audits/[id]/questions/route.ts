@@ -10,10 +10,19 @@ export async function PUT(
   const audit = store.getAudit(params.id);
   if (!audit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { questions } = await req.json();
+  const { questions, actor } = await req.json();
   const updated = await store.updateAudit(params.id, {
     questions,
     status: "ready",
   });
+
+  await store.addActivity({
+    action: "questions_confirmed",
+    actor: actor ?? "Unknown",
+    auditId: audit.id,
+    auditName: audit.name,
+    details: `Confirmed ${questions.length} questions`,
+  });
+
   return NextResponse.json({ audit: updated });
 }

@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import type { Audit, PolicyDocument, PolicyChunk, AuditSummary, AcceptedPatch } from "./types";
+import type { Audit, PolicyDocument, PolicyChunk, AuditSummary, AcceptedPatch, ActivityEntry, ActivityAction } from "./types";
 
 // Redis persistence via Upstash — graceful no-op when env vars are absent (local dev)
 function getRedis() {
@@ -78,6 +78,47 @@ async function kvLoadAllPatches(): Promise<Record<string, AcceptedPatch[]>> {
   }
 }
 
+async function kvWriteActivity(entry: ActivityEntry): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`activity:${entry.id}`, JSON.stringify(entry));
+    await redis.lpush("activity_ids", entry.id);
+  } catch (e) {
+    console.warn("[store] Redis activity write failed:", e);
+  }
+}
+
+async function kvLoadActivities(): Promise<ActivityEntry[]> {
+  const redis = getRedis();
+  if (!redis) return [];
+  try {
+    const ids: string[] = await redis.lrange("activity_ids", 0, -1);
+    if (ids.length === 0) return [];
+    const raw = await Promise.all(ids.map((id) => redis.get(`activity:${id}`)));
+    return raw
+      .filter(Boolean)
+      .map((e) => (typeof e === "string" ? JSON.parse(e) : e) as ActivityEntry);
+  } catch (e) {
+    console.warn("[store] Redis activity load failed:", e);
+    return [];
+  }
+}
+
+async function kvClearActivities(): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    const ids: string[] = await redis.lrange("activity_ids", 0, -1);
+    if (ids.length > 0) {
+      await Promise.all(ids.map((id) => redis.del(`activity:${id}`)));
+    }
+    await redis.del("activity_ids");
+  } catch (e) {
+    console.warn("[store] Redis activity clear failed:", e);
+  }
+}
+
 async function kvClearPatches(): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
@@ -95,8 +136,10 @@ async function kvClearPatches(): Promise<void> {
 class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
+  private activities: ActivityEntry[] = [];
   private auditsLoaded = false;
   private auditsLoading = false;
+  private activitiesLoaded = false;
 
   // Load audits from Redis on cold start
   async ensureAuditsLoaded(): Promise<void> {
@@ -296,6 +339,35 @@ class InMemoryStore {
   async clearAudits(): Promise<void> {
     this.audits.clear();
     await kvClear();
+  }
+
+  // --- Activity Log ---
+
+  async ensureActivitiesLoaded(): Promise<void> {
+    if (this.activitiesLoaded) return;
+    this.activities = await kvLoadActivities();
+    this.activitiesLoaded = true;
+    console.log(`[store] Loaded ${this.activities.length} activity entries from Redis`);
+  }
+
+  async addActivity(entry: Omit<ActivityEntry, "id" | "timestamp">): Promise<void> {
+    const full: ActivityEntry = {
+      ...entry,
+      id: nanoid(),
+      timestamp: new Date().toISOString(),
+    };
+    this.activities.unshift(full);
+    await kvWriteActivity(full);
+  }
+
+  getActivities(): ActivityEntry[] {
+    return this.activities;
+  }
+
+  async clearActivities(): Promise<void> {
+    this.activities = [];
+    this.activitiesLoaded = false;
+    await kvClearActivities();
   }
 }
 

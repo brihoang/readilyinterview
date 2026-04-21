@@ -19,5 +19,13 @@ export async function POST(
     archivedAt: new Date().toISOString(),
   });
 
+  await store.addActivity({
+    action: "audit_signed_off",
+    actor: archivedBy ?? "Unknown",
+    auditId: audit.id,
+    auditName: audit.name,
+    details: `Signed off "${audit.name}"`,
+  });
+
   return NextResponse.json({ success: true, audit: updated });
 }

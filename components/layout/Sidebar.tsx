@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, FolderOpen, ShieldCheck, ListTodo } from "lucide-react";
+import { ClipboardList, FolderOpen, ShieldCheck, ListTodo, ScrollText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/lib/context/UserContext";
 
 const navItems = [
   { href: "/audits", label: "Audits", icon: ClipboardList },
@@ -13,9 +14,10 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { currentUser } = useCurrentUser();
 
   return (
-    <aside className="w-56 shrink-0 border-r bg-white flex flex-col">
+    <aside className="w-56 shrink-0 border-r bg-white flex flex-col print:hidden">
       {/* Logo */}
       <div className="h-14 flex items-center gap-2.5 px-5 border-b shrink-0">
         <ShieldCheck className="h-6 w-6 text-primary" />
@@ -44,6 +46,20 @@ export function Sidebar() {
             </Link>
           );
         })}
+        {currentUser.role === "admin" && (
+          <Link
+            href="/admin/activity"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname.startsWith("/admin/activity")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <ScrollText className="h-4 w-4 shrink-0" />
+            Activity Log
+          </Link>
+        )}
       </nav>
 
       {/* Footer */}

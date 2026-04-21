@@ -19,6 +19,7 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}));
   const runMode: "all" | "failed-only" = body.runMode ?? "all";
+  const actor: string = body.actor ?? "Unknown";
 
   const questionsToRun =
     runMode === "failed-only"
@@ -71,6 +72,13 @@ export async function POST(
 
         // Mark complete
         await store.updateAudit(params.id, { status: "complete" });
+        await store.addActivity({
+          action: "audit_run",
+          actor,
+          auditId: params.id,
+          auditName: audit.name,
+          details: `Evaluated ${questionsToRun.length} questions (${runMode === "failed-only" ? "failed only" : "full suite"})`,
+        });
         controller.enqueue(
           encoder.encode(JSON.stringify({ done: true }) + "\n"),
         );

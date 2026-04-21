@@ -10,7 +10,7 @@ export async function PATCH(
   const audit = store.getAudit(params.id);
   if (!audit) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { questionId, markedCompliant } = await req.json();
+  const { questionId, markedCompliant, actor } = await req.json();
   const existing = audit.results[questionId] ?? {
     questionId,
     verdict: "pending" as const,
@@ -32,9 +32,20 @@ export async function PATCH(
         markedCompliantAt: markedCompliant
           ? new Date().toISOString()
           : undefined,
-        markedCompliantBy: markedCompliant ? "Sarah Chen" : undefined,
+        markedCompliantBy: markedCompliant ? (actor ?? "Unknown") : undefined,
       },
     },
+  });
+
+  const question = audit.questions.find((q) => q.id === questionId);
+  await store.addActivity({
+    action: markedCompliant ? "question_marked_compliant" : "question_unmarked_compliant",
+    actor: actor ?? "Unknown",
+    auditId: audit.id,
+    auditName: audit.name,
+    details: question?.text
+      ? `"${question.text.slice(0, 80)}${question.text.length > 80 ? "…" : ""}"`
+      : questionId,
   });
 
   return NextResponse.json({ audit: updated });

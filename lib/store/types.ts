@@ -1,3 +1,22 @@
+export type ActivityAction =
+  | "audit_created"
+  | "questions_confirmed"
+  | "audit_run"
+  | "policy_patched"
+  | "question_marked_compliant"
+  | "question_unmarked_compliant"
+  | "audit_signed_off";
+
+export interface ActivityEntry {
+  id: string;
+  timestamp: string;
+  action: ActivityAction;
+  actor: string;
+  auditId?: string;
+  auditName?: string;
+  details?: string;
+}
+
 export type AuditStatus =
   | "idle"
   | "uploading"

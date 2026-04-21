@@ -26,5 +26,14 @@ export async function POST(req: NextRequest) {
     notes: notes ?? "",
     createdBy: createdBy ?? undefined,
   });
+
+  await store.addActivity({
+    action: "audit_created",
+    actor: createdBy ?? "Unknown",
+    auditId: audit.id,
+    auditName: audit.name,
+    details: `Created "${audit.name}" (${framework})`,
+  });
+
   return NextResponse.json({ audit }, { status: 201 });
 }

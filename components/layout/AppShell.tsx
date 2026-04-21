@@ -34,9 +34,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <UserProvider>
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden print:block">
         {/* Topbar */}
-        <header className="flex h-14 items-center justify-end gap-3 border-b bg-white px-6 shrink-0">
+        <header className="flex h-14 items-center justify-end gap-3 border-b bg-white px-6 shrink-0 print:hidden">
           <Button
             variant="outline"
             size="sm"
