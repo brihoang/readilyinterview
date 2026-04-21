@@ -137,3 +137,38 @@ export interface AuditSummary {
   archivedAt?: string;
   stakeholders?: string[];
 }
+
+// ── Policy Anticipator ────────────────────────────────────────────────────────
+
+export type GapSeverity = "critical" | "moderate" | "low";
+
+export interface FederalDocument {
+  id: string;
+  documentNumber: string;
+  title: string;
+  abstract: string;
+  agencies: string[];
+  publicationDate: string;
+  htmlUrl: string;
+  type: string;
+  fetchedAt: string;
+  analysisStatus: "pending" | "analyzing" | "done" | "error";
+}
+
+export interface PolicyGap {
+  requirement: string;
+  severity: GapSeverity;
+  currentCoverage: "none" | "partial" | "adequate";
+  relevantPolicyTitle?: string;
+  relevantPolicySection?: string;
+  suggestedAction: string;
+}
+
+export interface PolicyRecommendation {
+  documentId: string;
+  summary: string;
+  impactLevel: "high" | "medium" | "low";
+  effectiveDate?: string;
+  gaps: PolicyGap[];
+  analyzedAt: string;
+}

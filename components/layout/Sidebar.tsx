@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, FolderOpen, ShieldCheck, ListTodo, ScrollText, ScanSearch, BarChart3 } from "lucide-react";
+import {
+  ClipboardList,
+  FolderOpen,
+  ShieldCheck,
+  ListTodo,
+  ScrollText,
+  ScanSearch,
+  Radar,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/context/UserContext";
 
@@ -59,6 +67,20 @@ export function Sidebar() {
           >
             <ScanSearch className="h-4 w-4 shrink-0" />
             Gap Detector
+          </Link>
+        )}
+        {currentUser.role === "admin" && (
+          <Link
+            href="/admin/anticipator"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname.startsWith("/admin/anticipator")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Radar className="h-4 w-4 shrink-0" />
+            Policy Anticipator
           </Link>
         )}
         {currentUser.role === "admin" && (
