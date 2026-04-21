@@ -1,5 +1,15 @@
 import { nanoid } from "nanoid";
-import type { Audit, PolicyDocument, PolicyChunk, AuditSummary, AcceptedPatch, ActivityEntry, ActivityAction } from "./types";
+import type {
+  Audit,
+  PolicyDocument,
+  PolicyChunk,
+  AuditSummary,
+  AcceptedPatch,
+  ActivityEntry,
+  ActivityAction,
+  FederalDocument,
+  PolicyRecommendation,
+} from "./types";
 
 // Redis persistence via Upstash — graceful no-op when env vars are absent (local dev)
 function getRedis() {
@@ -133,6 +143,27 @@ async function kvClearPatches(): Promise<void> {
   }
 }
 
+async function kvWriteFedDoc(id: string, doc: FederalDocument): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`fedoc:${id}`, JSON.stringify(doc));
+    await redis.sadd("fedoc_ids", id);
+  } catch (e) {
+    console.warn("[store] Redis fedoc write failed:", e);
+  }
+}
+
+async function kvWriteRec(documentId: string, rec: PolicyRecommendation): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await redis.set(`anticipator_rec:${documentId}`, JSON.stringify(rec));
+  } catch (e) {
+    console.warn("[store] Redis rec write failed:", e);
+  }
+}
+
 class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
@@ -140,6 +171,10 @@ class InMemoryStore {
   private auditsLoaded = false;
   private auditsLoading = false;
   private activitiesLoaded = false;
+  private federalDocuments: Map<string, FederalDocument> = new Map();
+  private recommendations: Map<string, PolicyRecommendation> = new Map();
+  private anticipatorLoaded = false;
+  private anticipatorLoading = false;
 
   // Load audits from Redis on cold start
   async ensureAuditsLoaded(): Promise<void> {
@@ -368,6 +403,92 @@ class InMemoryStore {
     this.activities = [];
     this.activitiesLoaded = false;
     await kvClearActivities();
+  }
+
+  // --- Policy Anticipator ---
+
+  async ensureAnticipatorLoaded(): Promise<void> {
+    if (this.anticipatorLoaded || this.anticipatorLoading) return;
+    const redis = getRedis();
+    if (!redis) {
+      this.anticipatorLoaded = true;
+      return;
+    }
+    this.anticipatorLoading = true;
+    try {
+      const ids: string[] = await redis.smembers("fedoc_ids");
+      const rawDocs = await Promise.all(ids.map((id) => redis.get(`fedoc:${id}`)));
+      for (const entry of rawDocs) {
+        if (!entry) continue;
+        const doc: FederalDocument = typeof entry === "string" ? JSON.parse(entry) : entry;
+        this.federalDocuments.set(doc.id, doc);
+      }
+      const recKeys = ids.map((id) => {
+        const doc = this.federalDocuments.get(id);
+        return doc ? `anticipator_rec:${doc.id}` : null;
+      }).filter(Boolean) as string[];
+      if (recKeys.length > 0) {
+        const rawRecs = await Promise.all(recKeys.map((k) => redis.get(k)));
+        for (const entry of rawRecs) {
+          if (!entry) continue;
+          const rec: PolicyRecommendation = typeof entry === "string" ? JSON.parse(entry) : entry;
+          this.recommendations.set(rec.documentId, rec);
+        }
+      }
+      console.log(`[store] Loaded ${this.federalDocuments.size} federal docs, ${this.recommendations.size} recommendations from Redis`);
+    } catch (e) {
+      console.warn("[store] Redis anticipator load failed:", e);
+    } finally {
+      this.anticipatorLoaded = true;
+      this.anticipatorLoading = false;
+    }
+  }
+
+  addFederalDocument(data: Omit<FederalDocument, "id">): FederalDocument | null {
+    const existing = Array.from(this.federalDocuments.values()).find(
+      (d) => d.documentNumber === data.documentNumber,
+    );
+    if (existing) return null;
+    const id = nanoid();
+    const doc: FederalDocument = { ...data, id };
+    this.federalDocuments.set(id, doc);
+    kvWriteFedDoc(id, doc);
+    return doc;
+  }
+
+  getFederalDocuments(): FederalDocument[] {
+    return Array.from(this.federalDocuments.values()).sort(
+      (a, b) => new Date(b.fetchedAt).getTime() - new Date(a.fetchedAt).getTime(),
+    );
+  }
+
+  getFederalDocument(id: string): FederalDocument | undefined {
+    return this.federalDocuments.get(id);
+  }
+
+  async updateFederalDocument(
+    id: string,
+    updates: Partial<FederalDocument>,
+  ): Promise<FederalDocument | undefined> {
+    const doc = this.federalDocuments.get(id);
+    if (!doc) return undefined;
+    const updated = { ...doc, ...updates };
+    this.federalDocuments.set(id, updated);
+    await kvWriteFedDoc(id, updated);
+    return updated;
+  }
+
+  async setRecommendation(rec: PolicyRecommendation): Promise<void> {
+    this.recommendations.set(rec.documentId, rec);
+    await kvWriteRec(rec.documentId, rec);
+  }
+
+  getRecommendation(documentId: string): PolicyRecommendation | undefined {
+    return this.recommendations.get(documentId);
+  }
+
+  getAllRecommendations(): PolicyRecommendation[] {
+    return Array.from(this.recommendations.values());
   }
 }
 

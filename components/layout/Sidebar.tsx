@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, FolderOpen, ShieldCheck, ListTodo, ScrollText, ScanSearch } from "lucide-react";
+import { ClipboardList, FolderOpen, ShieldCheck, ListTodo, ScrollText, ScanSearch, Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/context/UserContext";
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/audits", label: "Audits", icon: ClipboardList },
   { href: "/tasks", label: "Outstanding Tasks", icon: ListTodo },
   { href: "/policies", label: "Policy Library", icon: FolderOpen },
+  { href: "/anticipator", label: "Policy Anticipator", icon: Radar },
 ];
 
 export function Sidebar() {
