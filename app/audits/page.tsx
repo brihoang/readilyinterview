@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/context/UserContext";
 import type { AuditSummary, ComplianceFramework } from "@/lib/store/types";
 
@@ -82,8 +83,8 @@ export default function AuditsPage() {
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  type SortKey = "date-desc" | "date-asc" | "score-desc" | "score-asc";
-  const [sortKey, setSortKey] = useState<SortKey>("date-desc");
+  type SortKey = "due-asc" | "due-desc" | "date-desc" | "date-asc" | "score-desc" | "score-asc";
+  const [sortKey, setSortKey] = useState<SortKey>("due-asc");
   const [form, setForm] = useState({
     name: "",
     organization: "",
@@ -115,6 +116,16 @@ export default function AuditsPage() {
     }
   }
 
+  function getUrgency(a: AuditSummary): "critical" | "warning" | null {
+    if (!a.targetDate || a.status === "archived") return null;
+    const msLeft = new Date(a.targetDate).getTime() - Date.now();
+    if (msLeft <= 0) return "critical";
+    const daysLeft = msLeft / (1000 * 60 * 60 * 24);
+    if (daysLeft <= 1) return "critical";
+    if (daysLeft <= 7) return "warning";
+    return null;
+  }
+
   function getComplianceScore(a: AuditSummary) {
     if (a.questionCount === 0) return null;
 
@@ -129,7 +140,14 @@ export default function AuditsPage() {
   const visibleAudits = audits
     .filter((a) => showArchived || a.status !== "archived")
     .sort((a, b) => {
+      const noDate = 8640000000000000; // far future — audits with no date sort last
       switch (sortKey) {
+        case "due-asc":
+          return (a.targetDate ? new Date(a.targetDate).getTime() : noDate)
+            - (b.targetDate ? new Date(b.targetDate).getTime() : noDate);
+        case "due-desc":
+          return (b.targetDate ? new Date(b.targetDate).getTime() : -noDate)
+            - (a.targetDate ? new Date(a.targetDate).getTime() : -noDate);
         case "date-asc":
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "date-desc":
@@ -165,6 +183,8 @@ export default function AuditsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="due-asc">Due soonest</SelectItem>
+              <SelectItem value="due-desc">Due latest</SelectItem>
               <SelectItem value="date-desc">Newest first</SelectItem>
               <SelectItem value="date-asc">Oldest first</SelectItem>
               <SelectItem value="score-desc">Highest score</SelectItem>
@@ -224,10 +244,18 @@ export default function AuditsPage() {
           {visibleAudits.map((audit) => {
             const cfg = getDisplayStatus(audit);
             const score = getComplianceScore(audit);
+            const urgency = getUrgency(audit);
             return (
               <Card
                 key={audit.id}
-                className="hover:shadow-md transition-shadow cursor-pointer"
+                className={cn(
+                  "hover:shadow-md transition-shadow cursor-pointer border-l-4",
+                  urgency === "critical"
+                    ? "border-l-red-500 bg-red-50/40"
+                    : urgency === "warning"
+                      ? "border-l-amber-400 bg-amber-50/40"
+                      : "border-l-transparent",
+                )}
                 onClick={() => router.push(`/audits/${audit.id}`)}
               >
                 <CardContent className="flex items-center gap-4 p-5">
@@ -249,11 +277,28 @@ export default function AuditsPage() {
                         <Building2 className="h-3.5 w-3.5" />
                         {audit.organization}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {audit.targetDate
-                          ? new Date(audit.targetDate).toLocaleDateString()
-                          : "No date set"}
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className={cn(
+                          "h-3.5 w-3.5",
+                          urgency === "critical" ? "text-red-500" : urgency === "warning" ? "text-amber-500" : "",
+                        )} />
+                        <span className={cn(
+                          urgency === "critical" ? "text-red-600 font-medium" : urgency === "warning" ? "text-amber-600 font-medium" : "",
+                        )}>
+                          {audit.targetDate
+                            ? new Date(audit.targetDate).toLocaleDateString()
+                            : "No date set"}
+                        </span>
+                        {urgency === "critical" && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                            Due soon
+                          </span>
+                        )}
+                        {urgency === "warning" && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                            This week
+                          </span>
+                        )}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {audit.framework}
