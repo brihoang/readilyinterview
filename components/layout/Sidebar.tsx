@@ -10,6 +10,7 @@ import {
   ScrollText,
   ScanSearch,
   Radar,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/context/UserContext";
