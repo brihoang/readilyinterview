@@ -10,7 +10,6 @@ const navItems = [
   { href: "/audits", label: "Audits", icon: ClipboardList },
   { href: "/tasks", label: "Outstanding Tasks", icon: ListTodo },
   { href: "/policies", label: "Policy Library", icon: FolderOpen },
-  { href: "/anticipator", label: "Policy Anticipator", icon: Radar },
 ];
 
 export function Sidebar() {
@@ -59,6 +58,20 @@ export function Sidebar() {
           >
             <ScanSearch className="h-4 w-4 shrink-0" />
             Gap Detector
+          </Link>
+        )}
+        {currentUser.role === "admin" && (
+          <Link
+            href="/admin/anticipator"
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              pathname.startsWith("/admin/anticipator")
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Radar className="h-4 w-4 shrink-0" />
+            Policy Anticipator
           </Link>
         )}
         {currentUser.role === "admin" && (

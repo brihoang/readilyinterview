@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Radar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RegulationCard } from "@/components/anticipator/RegulationCard";
 import { ScanEmptyState } from "@/components/anticipator/ScanEmptyState";
+import { useCurrentUser } from "@/lib/context/UserContext";
 import type { FederalDocument, PolicyRecommendation } from "@/lib/store/types";
 import { toast } from "sonner";
 
 export default function AnticipatorPage() {
+  const router = useRouter();
+  const { currentUser } = useCurrentUser();
   const [documents, setDocuments] = useState<FederalDocument[]>([]);
   const [recommendations, setRecommendations] = useState<
     Record<string, PolicyRecommendation>
@@ -16,6 +20,10 @@ export default function AnticipatorPage() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (currentUser.role !== "admin") router.replace("/audits");
+  }, [currentUser, router]);
 
   const loadData = useCallback(async () => {
     const res = await fetch("/api/anticipator/regulations");
@@ -94,6 +102,8 @@ export default function AnticipatorPage() {
       });
     }
   };
+
+  if (currentUser.role !== "admin") return null;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
