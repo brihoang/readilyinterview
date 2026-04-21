@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -63,6 +63,7 @@ export function EvaluationRow({
   showMarkCompliant,
   onMarkCompliant,
   auditId,
+  autoFix,
 }: {
   question: Question;
   result?: QuestionResult;
@@ -70,8 +71,13 @@ export function EvaluationRow({
   showMarkCompliant?: boolean;
   onMarkCompliant?: (v: boolean) => void;
   auditId?: string;
+  autoFix?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (autoFix && result && result.verdict !== "pass") setExpanded(true);
+  }, [autoFix, result]);
 
   const verdict = result?.verdict ?? "pending";
   const cfg = verdictConfig[verdict];
@@ -189,6 +195,7 @@ export function EvaluationRow({
                   auditId={auditId}
                   questionId={question.id}
                   onMarkCompliant={onMarkCompliant}
+                  autoFetch={autoFix}
                 />
               )}
           </div>

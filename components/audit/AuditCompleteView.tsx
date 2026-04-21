@@ -9,6 +9,7 @@ import {
   PartyPopper,
   ShieldCheck,
   DollarSign,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ export function AuditCompleteView({
   const [showRerunModal, setShowRerunModal] = useState(false);
   const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
   const [showManualSignOffConfirm, setShowManualSignOffConfirm] = useState(false);
+  const [autoFix, setAutoFix] = useState(false);
 
   const markedQuestions = questions.filter(
     (q) => liveResults[q.id]?.markedCompliant,
@@ -133,6 +135,17 @@ export function AuditCompleteView({
                   Sign Off Audit
                 </Button>
               )}
+              {needsAttentionQuestions.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAutoFix(true)}
+                  disabled={autoFix}
+                >
+                  <Wand2 className="h-4 w-4" />
+                  {autoFix ? "Generating fixes…" : "Generate AI Fixes"}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -163,6 +176,7 @@ export function AuditCompleteView({
                 showMarkCompliant
                 onMarkCompliant={(v) => onMarkCompliant(q.id, v)}
                 auditId={auditId}
+                autoFix={autoFix}
               />
             ))}
           </div>

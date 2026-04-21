@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles, ChevronRight, ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,9 +12,10 @@ interface Props {
   auditId: string;
   questionId: string;
   onMarkCompliant?: (v: boolean) => void;
+  autoFetch?: boolean;
 }
 
-export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: Props) {
+export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant, autoFetch }: Props) {
   const { currentUser } = useCurrentUser();
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
@@ -23,6 +24,14 @@ export function PolicyPatchSuggestion({ auditId, questionId, onMarkCompliant }: 
   const [editedText, setEditedText] = useState<string>("");
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState<{ by: string; at: string } | null>(null);
+
+  useEffect(() => {
+    if (autoFetch && status === "idle") {
+      setExpanded(true);
+      fetchPatch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFetch]);
 
   async function fetchPatch() {
     setStatus("loading");
