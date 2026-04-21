@@ -238,10 +238,10 @@ class InMemoryStore {
         this.audits.set(audit.id, audit);
       }
       console.log(`[store] Loaded ${this.audits.size} audits from Redis`);
-    } catch (e) {
-      console.warn("[store] Redis load failed, continuing with empty store:", e);
-    } finally {
       this.auditsLoaded = true;
+    } catch (e) {
+      console.warn("[store] Redis load failed, will retry on next request:", e);
+    } finally {
       this.auditsLoading = false;
     }
   }
@@ -423,9 +423,13 @@ class InMemoryStore {
 
   async ensureActivitiesLoaded(): Promise<void> {
     if (this.activitiesLoaded) return;
-    this.activities = await kvLoadActivities();
-    this.activitiesLoaded = true;
-    console.log(`[store] Loaded ${this.activities.length} activity entries from Redis`);
+    try {
+      this.activities = await kvLoadActivities();
+      this.activitiesLoaded = true;
+      console.log(`[store] Loaded ${this.activities.length} activity entries from Redis`);
+    } catch (e) {
+      console.warn("[store] Redis activity load failed, will retry:", e);
+    }
   }
 
   async addActivity(entry: Omit<ActivityEntry, "id" | "timestamp">): Promise<void> {
@@ -538,10 +542,14 @@ class InMemoryStore {
 
   async ensureActionItemsLoaded(): Promise<void> {
     if (this.actionItemsLoaded) return;
-    const items = await kvLoadActionItems();
-    for (const item of items) this.actionItems.set(item.id, item);
-    this.actionItemsLoaded = true;
-    console.log(`[store] Loaded ${this.actionItems.size} action items from Redis`);
+    try {
+      const items = await kvLoadActionItems();
+      for (const item of items) this.actionItems.set(item.id, item);
+      this.actionItemsLoaded = true;
+      console.log(`[store] Loaded ${this.actionItems.size} action items from Redis`);
+    } catch (e) {
+      console.warn("[store] Redis action items load failed, will retry:", e);
+    }
   }
 
   async createActionItem(data: Omit<ActionItem, "id" | "createdAt" | "status">): Promise<ActionItem> {
