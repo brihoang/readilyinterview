@@ -494,7 +494,18 @@ class InMemoryStore {
   }
 }
 
-// Module-level singleton — persists across requests within the same warm instance
-const globalForStore = globalThis as unknown as { store?: InMemoryStore };
+// Version bump whenever new methods are added — forces singleton recreation on hot reload
+const STORE_VERSION = 2;
+
+const globalForStore = globalThis as unknown as {
+  store?: InMemoryStore;
+  storeVersion?: number;
+};
+
+if (globalForStore.storeVersion !== STORE_VERSION) {
+  globalForStore.store = undefined;
+  globalForStore.storeVersion = STORE_VERSION;
+}
+
 export const store = globalForStore.store ?? new InMemoryStore();
 globalForStore.store = store;
