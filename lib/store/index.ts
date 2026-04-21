@@ -207,8 +207,6 @@ class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
   private activities: ActivityEntry[] = [];
-  private auditsLoaded = false;
-  private auditsLoading = false;
   private activitiesLoaded = false;
   private federalDocuments: Map<string, FederalDocument> = new Map();
   private recommendations: Map<string, PolicyRecommendation> = new Map();
@@ -217,32 +215,21 @@ class InMemoryStore {
   private actionItems: Map<string, ActionItem> = new Map();
   private actionItemsLoaded = false;
 
-  // Load audits from Redis on cold start
+  // Always reload audits from Redis — avoids stale data across multiple Vercel instances
   async ensureAuditsLoaded(): Promise<void> {
-    if (this.auditsLoaded || this.auditsLoading) return;
     const redis = getRedis();
-    if (!redis) {
-      this.auditsLoaded = true;
-      return;
-    }
-    this.auditsLoading = true;
+    if (!redis) return;
     try {
       const ids: string[] = await redis.smembers("audit_ids");
-      const raw = await Promise.all(
-        ids.map((id) => redis.get(`audit:${id}`)),
-      );
+      const raw = await Promise.all(ids.map((id) => redis.get(`audit:${id}`)));
+      this.audits.clear();
       for (const entry of raw) {
         if (!entry) continue;
-        const audit: Audit =
-          typeof entry === "string" ? JSON.parse(entry) : entry;
+        const audit: Audit = typeof entry === "string" ? JSON.parse(entry) : entry;
         this.audits.set(audit.id, audit);
       }
-      console.log(`[store] Loaded ${this.audits.size} audits from Redis`);
-      this.auditsLoaded = true;
     } catch (e) {
-      console.warn("[store] Redis load failed, will retry on next request:", e);
-    } finally {
-      this.auditsLoading = false;
+      console.warn("[store] Redis load failed:", e);
     }
   }
 
