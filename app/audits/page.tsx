@@ -62,7 +62,7 @@ const STATUS_CONFIG: Record<
   review: { label: "Review", variant: "warning" },
   ready: { label: "Ready for AI Audit", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
-  complete: { label: "AI Verified", variant: "success" },
+  complete: { label: "Marked Compliant", variant: "success" },
   archived: { label: "Signed Off", variant: "success" },
   needs_review: { label: "Needs Review", variant: "warning" },
 };
@@ -84,7 +84,13 @@ export default function AuditsPage() {
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  type SortKey = "due-asc" | "due-desc" | "date-desc" | "date-asc" | "score-desc" | "score-asc";
+  type SortKey =
+    | "due-asc"
+    | "due-desc"
+    | "date-desc"
+    | "date-asc"
+    | "score-desc"
+    | "score-asc";
   const [sortKey, setSortKey] = useState<SortKey>("due-asc");
   const [form, setForm] = useState({
     name: "",
@@ -111,7 +117,11 @@ export default function AuditsPage() {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, createdBy: currentUser.displayName, stakeholders }),
+        body: JSON.stringify({
+          ...form,
+          createdBy: currentUser.displayName,
+          stakeholders,
+        }),
       });
       const data = await res.json();
       router.push(`/audits/${data.audit.id}`);
@@ -147,15 +157,23 @@ export default function AuditsPage() {
       const noDate = 8640000000000000; // far future — audits with no date sort last
       switch (sortKey) {
         case "due-asc":
-          return (a.targetDate ? new Date(a.targetDate).getTime() : noDate)
-            - (b.targetDate ? new Date(b.targetDate).getTime() : noDate);
+          return (
+            (a.targetDate ? new Date(a.targetDate).getTime() : noDate) -
+            (b.targetDate ? new Date(b.targetDate).getTime() : noDate)
+          );
         case "due-desc":
-          return (b.targetDate ? new Date(b.targetDate).getTime() : -noDate)
-            - (a.targetDate ? new Date(a.targetDate).getTime() : -noDate);
+          return (
+            (b.targetDate ? new Date(b.targetDate).getTime() : -noDate) -
+            (a.targetDate ? new Date(a.targetDate).getTime() : -noDate)
+          );
         case "date-asc":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
         case "date-desc":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         case "score-asc":
           return (getComplianceScore(a) ?? -1) - (getComplianceScore(b) ?? -1);
         case "score-desc":
@@ -182,7 +200,10 @@ export default function AuditsPage() {
       {/* Toolbar */}
       {!loading && audits.length > 0 && (
         <div className="flex items-center justify-end gap-2 mb-4">
-          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+          <Select
+            value={sortKey}
+            onValueChange={(v) => setSortKey(v as SortKey)}
+          >
             <SelectTrigger className="w-44 h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -203,7 +224,9 @@ export default function AuditsPage() {
               onClick={() => setShowArchived((v) => !v)}
             >
               <Archive className="h-3.5 w-3.5" />
-              {showArchived ? "Hide archived" : `Show archived (${archivedCount})`}
+              {showArchived
+                ? "Hide archived"
+                : `Show archived (${archivedCount})`}
             </Button>
           )}
         </div>
@@ -282,13 +305,25 @@ export default function AuditsPage() {
                         {audit.organization}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Calendar className={cn(
-                          "h-3.5 w-3.5",
-                          urgency === "critical" ? "text-red-500" : urgency === "warning" ? "text-amber-500" : "",
-                        )} />
-                        <span className={cn(
-                          urgency === "critical" ? "text-red-600 font-medium" : urgency === "warning" ? "text-amber-600 font-medium" : "",
-                        )}>
+                        <Calendar
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            urgency === "critical"
+                              ? "text-red-500"
+                              : urgency === "warning"
+                                ? "text-amber-500"
+                                : "",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            urgency === "critical"
+                              ? "text-red-600 font-medium"
+                              : urgency === "warning"
+                                ? "text-amber-600 font-medium"
+                                : "",
+                          )}
+                        >
                           {audit.targetDate
                             ? new Date(audit.targetDate).toLocaleDateString()
                             : "No date set"}
@@ -435,58 +470,91 @@ export default function AuditsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Stakeholders <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Label>
+                Stakeholders{" "}
+                <span className="text-muted-foreground font-normal">
+                  (optional)
+                </span>
+              </Label>
               <div className="relative">
                 <Input
                   placeholder="Search users…"
                   value={stakeholderSearch}
-                  onChange={(e) => { setStakeholderSearch(e.target.value); setStakeholderOpen(true); }}
+                  onChange={(e) => {
+                    setStakeholderSearch(e.target.value);
+                    setStakeholderOpen(true);
+                  }}
                   onFocus={() => setStakeholderOpen(true)}
-                  onBlur={() => setTimeout(() => setStakeholderOpen(false), 150)}
+                  onBlur={() =>
+                    setTimeout(() => setStakeholderOpen(false), 150)
+                  }
                   autoComplete="off"
                 />
-                {stakeholderOpen && (() => {
-                  const opts = DEMO_USERS.filter(
-                    (u) =>
-                      u.displayName !== currentUser.displayName &&
-                      !stakeholders.includes(u.displayName) &&
-                      u.displayName.toLowerCase().includes(stakeholderSearch.toLowerCase()),
-                  );
-                  return opts.length > 0 ? (
-                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-md">
-                      {opts.map((u) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent text-left"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setStakeholders((prev) => [...prev, u.displayName]);
-                            setStakeholderSearch("");
-                            setStakeholderOpen(false);
-                          }}
-                        >
-                          <span className={cn("h-6 w-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0", u.color)}>
-                            {u.initials}
-                          </span>
-                          <div>
-                            <p className="font-medium text-slate-800">{u.displayName}</p>
-                            <p className="text-xs text-muted-foreground">{u.title}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null;
-                })()}
+                {stakeholderOpen &&
+                  (() => {
+                    const opts = DEMO_USERS.filter(
+                      (u) =>
+                        u.displayName !== currentUser.displayName &&
+                        !stakeholders.includes(u.displayName) &&
+                        u.displayName
+                          .toLowerCase()
+                          .includes(stakeholderSearch.toLowerCase()),
+                    );
+                    return opts.length > 0 ? (
+                      <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-md">
+                        {opts.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent text-left"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setStakeholders((prev) => [
+                                ...prev,
+                                u.displayName,
+                              ]);
+                              setStakeholderSearch("");
+                              setStakeholderOpen(false);
+                            }}
+                          >
+                            <span
+                              className={cn(
+                                "h-6 w-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0",
+                                u.color,
+                              )}
+                            >
+                              {u.initials}
+                            </span>
+                            <div>
+                              <p className="font-medium text-slate-800">
+                                {u.displayName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {u.title}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
               </div>
               {stakeholders.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {stakeholders.map((name) => {
                     const u = DEMO_USERS.find((u) => u.displayName === name);
                     return (
-                      <span key={name} className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-slate-100 border text-xs font-medium text-slate-700">
+                      <span
+                        key={name}
+                        className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-slate-100 border text-xs font-medium text-slate-700"
+                      >
                         {u && (
-                          <span className={cn("h-4 w-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center shrink-0", u.color)}>
+                          <span
+                            className={cn(
+                              "h-4 w-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center shrink-0",
+                              u.color,
+                            )}
+                          >
                             {u.initials}
                           </span>
                         )}
@@ -494,7 +562,11 @@ export default function AuditsPage() {
                         <button
                           type="button"
                           className="ml-0.5 text-muted-foreground hover:text-red-500"
-                          onClick={() => setStakeholders((prev) => prev.filter((n) => n !== name))}
+                          onClick={() =>
+                            setStakeholders((prev) =>
+                              prev.filter((n) => n !== name),
+                            )
+                          }
                         >
                           ×
                         </button>
@@ -503,11 +575,21 @@ export default function AuditsPage() {
                   })}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">Stakeholders will see this audit in their Outstanding Tasks.</p>
+              <p className="text-xs text-muted-foreground">
+                Stakeholders will see this audit in their Outstanding Tasks.
+              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setOpen(false); setStakeholders([]); setStakeholderSearch(""); setStakeholderOpen(false); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                setStakeholders([]);
+                setStakeholderSearch("");
+                setStakeholderOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button

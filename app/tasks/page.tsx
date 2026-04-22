@@ -25,7 +25,10 @@ type TaskItem =
   | { kind: "audit"; data: AuditSummary }
   | { kind: "action"; data: ActionItem };
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info" | "warning" | "secondary" }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "success" | "info" | "warning" | "secondary" }
+> = {
   idle: { label: "Draft", variant: "secondary" },
   review: { label: "In Review", variant: "warning" },
   ready: { label: "Ready for AI Audit", variant: "info" },
@@ -34,8 +37,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info"
 };
 
 function getStatusConfig(a: AuditSummary) {
-  if (a.status === "complete" && (a.failCount + a.partialCount) === 0) {
-    return { label: "AI Verified", variant: "success" as const };
+  if (a.status === "complete" && a.failCount + a.partialCount === 0) {
+    return { label: "Marked Compliant", variant: "success" as const };
   }
   return STATUS_CONFIG[a.status] ?? STATUS_CONFIG.idle;
 }
@@ -51,10 +54,12 @@ export default function TasksPage() {
     Promise.all([
       fetch("/api/audits").then((r) => r.json()),
       fetch("/api/action-items").then((r) => r.json()),
-    ]).then(([auditData, actionData]) => {
-      setAudits(auditData.audits ?? []);
-      setActionItems(actionData.items ?? []);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([auditData, actionData]) => {
+        setAudits(auditData.audits ?? []);
+        setActionItems(actionData.items ?? []);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   async function handleCompleteAction(item: ActionItem) {
@@ -68,28 +73,30 @@ export default function TasksPage() {
       }),
     });
     const data = await res.json();
-    setActionItems((prev) => prev.map((i) => (i.id === item.id ? data.item : i)));
+    setActionItems((prev) =>
+      prev.map((i) => (i.id === item.id ? data.item : i)),
+    );
   }
 
   const outstandingAudits = audits
     .filter(
       (a) =>
         a.status !== "archived" &&
-        (
-          !a.createdBy ||
+        (!a.createdBy ||
           a.createdBy === currentUser.displayName ||
-          a.stakeholders?.includes(currentUser.displayName)
-        ),
+          a.stakeholders?.includes(currentUser.displayName)),
     )
     .sort((a, b) => {
       if (!a.targetDate && !b.targetDate) return 0;
       if (!a.targetDate) return 1;
       if (!b.targetDate) return -1;
-      return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+      return (
+        new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime()
+      );
     });
 
   const myOpenActions = actionItems.filter(
-    (i) => i.assignedTo === currentUser.displayName && i.status === "open"
+    (i) => i.assignedTo === currentUser.displayName && i.status === "open",
   );
 
   const tasks: TaskItem[] = [
@@ -101,13 +108,18 @@ export default function TasksPage() {
     return (
       <div className="max-w-3xl mx-auto space-y-3">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">Outstanding Tasks</h1>
+          <h1 className="text-2xl font-bold text-slate-800">
+            Outstanding Tasks
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Audits with unresolved compliance issues
           </p>
         </div>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl border bg-white animate-pulse" />
+          <div
+            key={i}
+            className="h-24 rounded-xl border bg-white animate-pulse"
+          />
         ))}
       </div>
     );
@@ -131,7 +143,8 @@ export default function TasksPage() {
             You&apos;re all caught up!
           </h2>
           <p className="text-sm text-muted-foreground max-w-sm">
-            No outstanding compliance issues across any of your audits. Keep up the great work.
+            No outstanding compliance issues across any of your audits. Keep up
+            the great work.
           </p>
         </div>
       ) : (
@@ -143,12 +156,17 @@ export default function TasksPage() {
               const hasIssues = audit.status === "complete" && issueCount > 0;
               const statusCfg = getStatusConfig(audit);
               const daysUntil = audit.targetDate
-                ? Math.ceil((new Date(audit.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                ? Math.ceil(
+                    (new Date(audit.targetDate).getTime() - Date.now()) /
+                      (1000 * 60 * 60 * 24),
+                  )
                 : null;
               const urgency =
-                daysUntil !== null && daysUntil <= 7 ? "high"
-                : daysUntil !== null && daysUntil <= 30 ? "medium"
-                : "low";
+                daysUntil !== null && daysUntil <= 7
+                  ? "high"
+                  : daysUntil !== null && daysUntil <= 30
+                    ? "medium"
+                    : "low";
 
               return (
                 <Card
@@ -159,9 +177,15 @@ export default function TasksPage() {
                   <CardContent className="flex items-center gap-4 p-5">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <h3 className="font-semibold text-slate-800 truncate">{audit.name}</h3>
-                        <Badge variant={statusCfg.variant} className="shrink-0">{statusCfg.label}</Badge>
-                        <Badge variant="outline" className="text-xs shrink-0">{audit.framework}</Badge>
+                        <h3 className="font-semibold text-slate-800 truncate">
+                          {audit.name}
+                        </h3>
+                        <Badge variant={statusCfg.variant} className="shrink-0">
+                          {statusCfg.label}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {audit.framework}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -173,12 +197,23 @@ export default function TasksPage() {
                             <Calendar className="h-3.5 w-3.5" />
                             {new Date(audit.targetDate).toLocaleDateString()}
                             {daysUntil !== null && daysUntil > 0 && (
-                              <span className={cn("ml-1", urgency === "high" ? "text-red-600 font-medium" : urgency === "medium" ? "text-amber-600 font-medium" : "")}>
+                              <span
+                                className={cn(
+                                  "ml-1",
+                                  urgency === "high"
+                                    ? "text-red-600 font-medium"
+                                    : urgency === "medium"
+                                      ? "text-amber-600 font-medium"
+                                      : "",
+                                )}
+                              >
                                 ({daysUntil}d)
                               </span>
                             )}
                             {daysUntil !== null && daysUntil <= 0 && (
-                              <span className="text-red-600 font-medium ml-1">(overdue)</span>
+                              <span className="text-red-600 font-medium ml-1">
+                                (overdue)
+                              </span>
                             )}
                           </span>
                         )}
@@ -188,11 +223,17 @@ export default function TasksPage() {
                       {hasIssues && (
                         <div className="flex items-center gap-1.5 text-red-700">
                           <XCircle className="h-4 w-4" />
-                          <span className="text-sm font-medium">{issueCount}/{audit.questionCount} need attention</span>
+                          <span className="text-sm font-medium">
+                            {issueCount}/{audit.questionCount} need attention
+                          </span>
                         </div>
                       )}
-                      {urgency === "high" && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                      {urgency === "medium" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                      {urgency === "high" && (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      )}
+                      {urgency === "medium" && (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </CardContent>
@@ -202,14 +243,18 @@ export default function TasksPage() {
 
             // Action item card
             const item = task.data;
-            const user = DEMO_USERS.find((u) => u.displayName === item.assignedTo);
+            const user = DEMO_USERS.find(
+              (u) => u.displayName === item.assignedTo,
+            );
             return (
               <Card key={`action-${item.id}`} className="border-dashed">
                 <CardContent className="flex items-start gap-4 p-5">
                   <Square className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="secondary" className="text-xs shrink-0">Action Item</Badge>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        Action Item
+                      </Badge>
                       {item.auditId && item.auditName && (
                         <button
                           onClick={() => router.push(`/audits/${item.auditId}`)}
@@ -223,9 +268,16 @@ export default function TasksPage() {
                     <p className="text-sm text-slate-800">{item.text}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       {user && (
-                        <span className={cn("inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full text-white", user.color)}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full text-white",
+                            user.color,
+                          )}
+                        >
                           {user.initials}
-                          <span className="font-normal opacity-90">{user.displayName}</span>
+                          <span className="font-normal opacity-90">
+                            {user.displayName}
+                          </span>
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">
