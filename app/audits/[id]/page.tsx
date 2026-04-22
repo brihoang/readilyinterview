@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Building2, Calendar, RotateCcw, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,9 +55,9 @@ const STATUS_CONFIG: Record<
   uploading: { label: "Uploading", variant: "info" },
   extracting: { label: "Extracting", variant: "info" },
   review: { label: "In Review", variant: "warning" },
-  ready: { label: "Ready", variant: "info" },
+  ready: { label: "Ready for AI Audit", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
-  complete: { label: "AI Verified", variant: "success" },
+  complete: { label: "Marked Compliant", variant: "success" },
   complete_needs_review: { label: "Needs Review", variant: "warning" },
   archived: { label: "Signed Off", variant: "success" },
 };
@@ -60,7 +66,8 @@ function getDisplayStatus(audit: Audit) {
   if (audit.status === "complete") {
     const results = Object.values(audit.results);
     const hasUnresolved = results.some(
-      (r) => (r.verdict === "fail" || r.verdict === "partial") && !r.markedCompliant
+      (r) =>
+        (r.verdict === "fail" || r.verdict === "partial") && !r.markedCompliant,
     );
     if (hasUnresolved) return STATUS_CONFIG.complete_needs_review;
   }
@@ -190,7 +197,10 @@ export default function AuditDetailPage() {
         <TabsContent value="prep">
           <PrepWorkspace
             audit={audit}
-            onAuditChange={() => { setLiveStatus(null); fetchAudit(); }}
+            onAuditChange={() => {
+              setLiveStatus(null);
+              fetchAudit();
+            }}
             onLiveStatusChange={setLiveStatus}
           />
         </TabsContent>
@@ -213,7 +223,10 @@ export default function AuditDetailPage() {
                 <>
                   <span className="block mb-2">
                     This audit has{" "}
-                    <strong>{audit.questions.length} question{audit.questions.length !== 1 ? "s" : ""}</strong>
+                    <strong>
+                      {audit.questions.length} question
+                      {audit.questions.length !== 1 ? "s" : ""}
+                    </strong>
                     {Object.keys(audit.results).length > 0
                       ? ` and ${Object.keys(audit.results).length} AI evaluation result${Object.keys(audit.results).length !== 1 ? "s" : ""}`
                       : ""}{" "}
@@ -227,10 +240,17 @@ export default function AuditDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               {deleting ? "Deleting…" : "Delete Audit"}
             </Button>
           </DialogFooter>
@@ -263,14 +283,21 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
 
   return (
     <div className="max-w-lg space-y-4">
-      {(audit.createdBy || (audit.stakeholders && audit.stakeholders.length > 0)) && (
+      {(audit.createdBy ||
+        (audit.stakeholders && audit.stakeholders.length > 0)) && (
         <div className="flex flex-col gap-1.5 text-sm text-muted-foreground pb-3 border-b">
           {audit.createdBy && (
             <div className="flex items-center gap-2">
               <span>Created by</span>
               <UserHoverCard name={audit.createdBy} />
               <span>·</span>
-              <span>{new Date(audit.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+              <span>
+                {new Date(audit.createdAt).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
             </div>
           )}
           {audit.stakeholders && audit.stakeholders.length > 0 && (

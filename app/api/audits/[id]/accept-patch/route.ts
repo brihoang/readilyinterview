@@ -43,6 +43,7 @@ export async function POST(
       { status: 404 },
     );
 
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: "policy_patched",
     actor: acceptedBy ?? "Unknown",

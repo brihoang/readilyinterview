@@ -41,50 +41,53 @@ let seeded = false;
 let seeding = false;
 
 export async function ensureSeeded(): Promise<void> {
-  if (seeded || seeding) return;
-  // Docs already in store (e.g. hot-reload reset the flag) — don't overwrite patches
-  if (store.hasPolicyDocuments()) { seeded = true; return; }
+  if (seeding) return;
   seeding = true;
 
   try {
     // Fast path: load precomputed chunks JSON (no PDF parsing needed)
+    // Always reload to pick up patches from other Vercel instances via Redis
     if (fs.existsSync(PRECOMPUTED_PATH)) {
-      const raw = fs.readFileSync(PRECOMPUTED_PATH, "utf-8");
-      const docs = JSON.parse(raw) as {
-        title: string;
-        filename: string;
-        folder: string;
-        category: string;
-        dateAdded: string;
-        chunks: {
-          id: string;
-          sectionTitle: string;
-          text: string;
-          chunkIndex: number;
+      if (!seeded) {
+        // Only parse and load docs once per container — addPolicyDocument is idempotent
+        // but parsing 11MB JSON on every request would be too slow
+        const raw = fs.readFileSync(PRECOMPUTED_PATH, "utf-8");
+        const docs = JSON.parse(raw) as {
+          title: string;
+          filename: string;
+          folder: string;
+          category: string;
+          dateAdded: string;
+          chunks: {
+            id: string;
+            sectionTitle: string;
+            text: string;
+            chunkIndex: number;
+          }[];
         }[];
-      }[];
 
-      for (const doc of docs) {
-        store.addPolicyDocument({
-          title: doc.title,
-          filename: doc.filename,
-          folder: doc.folder,
-          category: doc.category,
-          dateAdded: doc.dateAdded,
-          rawText: "",
-          chunks: doc.chunks.map((c) => ({
-            ...c,
-            id: c.id ?? nanoid(),
-            documentId: "", // overwritten by store.addPolicyDocument
-          })),
-        });
+        for (const doc of docs) {
+          store.addPolicyDocument({
+            title: doc.title,
+            filename: doc.filename,
+            folder: doc.folder,
+            category: doc.category,
+            dateAdded: doc.dateAdded,
+            rawText: "",
+            chunks: doc.chunks.map((c) => ({
+              ...c,
+              id: c.id ?? nanoid(),
+              documentId: "",
+            })),
+          });
+        }
+
+        console.log(`[seed] Loaded ${docs.length} policy documents from precomputed cache`);
+        seeded = true;
       }
 
-      console.log(
-        `[seed] Loaded ${docs.length} policy documents from precomputed cache`,
-      );
+      // Always replay patches so accepted patches from other instances are applied
       await store.replayPersistedPatches();
-      seeded = true;
       return;
     }
 

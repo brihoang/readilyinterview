@@ -38,6 +38,7 @@ export async function PATCH(
   });
 
   const question = audit.questions.find((q) => q.id === questionId);
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: markedCompliant ? "question_marked_compliant" : "question_unmarked_compliant",
     actor: actor ?? "Unknown",
