@@ -396,6 +396,7 @@ export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Prop
     return (
       <AuditCompleteView
         auditId={audit.id}
+        actor={currentUser.displayName}
         questions={questions}
         liveResults={liveResults}
         passCount={passCount}

@@ -10,8 +10,10 @@ import {
   ShieldCheck,
   DollarSign,
   Wand2,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +29,7 @@ import type { Question, QuestionResult } from "@/lib/store/types";
 
 interface Props {
   auditId: string;
+  actor: string;
   questions: Question[];
   liveResults: Record<string, QuestionResult>;
   passCount: number;
@@ -45,6 +48,7 @@ interface Props {
 
 export function AuditCompleteView({
   auditId,
+  actor,
   questions,
   liveResults,
   passCount,
@@ -64,6 +68,25 @@ export function AuditCompleteView({
   const [allMarkedDismissed, setAllMarkedDismissed] = useState(false);
   const [showManualSignOffConfirm, setShowManualSignOffConfirm] = useState(false);
   const [autoFix, setAutoFix] = useState(false);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+
+  async function handleGeneratePlan() {
+    setGeneratingPlan(true);
+    try {
+      const res = await fetch(`/api/audits/${auditId}/remediation-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actor }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      toast.success(`${data.items.length} remediation items added to Action Items`);
+    } catch {
+      toast.error("Failed to generate remediation plan");
+    } finally {
+      setGeneratingPlan(false);
+    }
+  }
 
   const markedQuestions = questions.filter(
     (q) => liveResults[q.id]?.markedCompliant,
@@ -136,15 +159,26 @@ export function AuditCompleteView({
                 </Button>
               )}
               {needsAttentionQuestions.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAutoFix(true)}
-                  disabled={autoFix}
-                >
-                  <Wand2 className="h-4 w-4" />
-                  {autoFix ? "Generating fixes…" : "Generate AI Fixes"}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGeneratePlan}
+                    disabled={generatingPlan || autoFix}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    {generatingPlan ? "Generating…" : "Remediation Plan"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoFix(true)}
+                    disabled={autoFix || generatingPlan}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    {autoFix ? "Generating fixes…" : "Generate AI Fixes"}
+                  </Button>
+                </>
               )}
               <Button
                 variant="outline"
