@@ -36,7 +36,6 @@ export async function GET() {
 
     for (const r of results) {
       const isFailing = r.verdict === "fail" || r.verdict === "partial";
-      const isResolved = r.verdict === "pass" || r.markedCompliant;
       const exposure = r.estimatedExposure?.high ?? 0;
 
       if (isFailing && !r.markedCompliant && audit.status !== "archived") {
@@ -46,12 +45,22 @@ export async function GET() {
         rowExposureOpen += exposure;
       }
 
+      // Exposure is only non-zero on fail/partial, so this correctly captures
+      // failing questions resolved via manual sign-off or audit archive.
       if (isFailing && (r.markedCompliant || audit.status === "archived")) {
         exposureClosed += exposure;
         rowExposureClosed += exposure;
       }
 
-      if (r.markedCompliant && r.markedCompliantAt) {
+      // AI-resolved: question evaluated to pass — use evaluatedAt for recency window
+      if (r.verdict === "pass" && r.evaluatedAt) {
+        const age = (now - new Date(r.evaluatedAt).getTime()) / msPerDay;
+        if (age <= 7) resolvedLast7++;
+        if (age <= 30) resolvedLast30++;
+      }
+
+      // Manually resolved: markedCompliant on a fail/partial — use markedCompliantAt
+      if (isFailing && r.markedCompliant && r.markedCompliantAt) {
         const age = (now - new Date(r.markedCompliantAt).getTime()) / msPerDay;
         if (age <= 7) resolvedLast7++;
         if (age <= 30) resolvedLast30++;
