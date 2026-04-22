@@ -36,10 +36,16 @@ export async function POST(
     );
   }
 
+  // Clear stale results for questions being re-run so a refresh mid-evaluation
+  // shows them as pending rather than showing the old verdict.
+  const clearedResults = { ...audit.results };
+  for (const q of questionsToRun) delete clearedResults[q.id];
+
   await store.updateAudit(params.id, {
     status: "evaluating",
     iterationCount: audit.iterationCount + 1,
     runMode,
+    results: clearedResults,
   });
 
   const allChunks = store.getAllChunks();

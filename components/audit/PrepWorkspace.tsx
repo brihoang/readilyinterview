@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,35 @@ export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Prop
   );
   const [rerunningIds, setRerunningIds] = useState<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // When mounting mid-evaluation (hard refresh), poll for results since the
+  // streaming connection is gone but the server is still writing to Redis.
+  useEffect(() => {
+    if (currentStatus !== "evaluating" || rerunningIds.size > 0) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/audits/${audit.id}`);
+        const data = await res.json();
+        const fetched = data.audit;
+        if (!fetched) return;
+        setLiveResults(fetched.results ?? {});
+        if (fetched.status === "complete") {
+          clearInterval(pollingRef.current!);
+          pollingRef.current = null;
+          setCurrentStatus("complete");
+          onLiveStatusChange?.(null);
+          onAuditChange();
+        }
+      } catch {}
+    }, 2000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "application/pdf": [".pdf"] },
@@ -91,6 +120,7 @@ export function PrepWorkspace({ audit, onAuditChange, onLiveStatusChange }: Prop
 
   async function handleRunEvaluation(runMode: "all" | "failed-only" = "all") {
     setShowRunDialog(false);
+    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
     setCurrentStatus("evaluating");
     onLiveStatusChange?.("evaluating");
     setEvaluationProgress(0);
