@@ -79,6 +79,8 @@ export default function ActivityLogPage() {
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
           th { background: #f5f5f5; font-weight: 600; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: avoid; }
         }
       `}</style>
 
@@ -158,7 +160,7 @@ export default function ActivityLogPage() {
           No activity entries found.
         </p>
       ) : (
-        <div className="rounded-xl border overflow-hidden">
+        <div className="rounded-xl border overflow-hidden print:overflow-visible print:rounded-none">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr>
@@ -171,7 +173,7 @@ export default function ActivityLogPage() {
             </thead>
             <tbody className="divide-y">
               {entries.map((entry) => (
-                <tr key={entry.id} className="bg-white hover:bg-slate-50 transition-colors">
+                <tr key={entry.id} className="bg-white hover:bg-slate-50 transition-colors print:break-inside-avoid">
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                     {new Date(entry.timestamp).toLocaleString("en-US", {
                       month: "short", day: "numeric", year: "numeric",
@@ -184,7 +186,7 @@ export default function ActivityLogPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 font-medium text-slate-700">{entry.actor}</td>
-                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[160px]">
+                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[160px] print:max-w-none print:whitespace-normal">
                     {entry.auditName ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{entry.details ?? "—"}</td>
