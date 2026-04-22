@@ -28,7 +28,7 @@ type TaskItem =
 const STATUS_CONFIG: Record<string, { label: string; variant: "success" | "info" | "warning" | "secondary" }> = {
   idle: { label: "Draft", variant: "secondary" },
   review: { label: "In Review", variant: "warning" },
-  ready: { label: "Ready", variant: "info" },
+  ready: { label: "Ready for AI Audit", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
   complete: { label: "Needs Review", variant: "warning" },
 };

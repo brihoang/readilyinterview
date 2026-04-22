@@ -60,7 +60,7 @@ const STATUS_CONFIG: Record<
   uploading: { label: "Uploading", variant: "info" },
   extracting: { label: "Extracting", variant: "info" },
   review: { label: "Review", variant: "warning" },
-  ready: { label: "Ready", variant: "info" },
+  ready: { label: "Ready for AI Audit", variant: "info" },
   evaluating: { label: "Evaluating", variant: "warning" },
   complete: { label: "AI Verified", variant: "success" },
   archived: { label: "Signed Off", variant: "success" },
