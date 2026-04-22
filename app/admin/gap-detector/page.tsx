@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ScanSearch, ChevronDown, ChevronRight, Loader2, Wand2, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { ScanSearch, ChevronDown, ChevronRight, Loader2, Wand2, CheckCircle2, AlertTriangle, Info, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/lib/context/UserContext";
 import type { PolicyAnalysis } from "@/lib/ai/analyzePolicy";
+import { CreateActionItemDialog } from "@/components/shared/CreateActionItemDialog";
 
 interface PolicyDoc {
   id: string;
@@ -70,6 +71,7 @@ export default function GapDetectorPage() {
   const [results, setResults] = useState<GapResult[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [fixes, setFixes] = useState<Map<string, FixState>>(new Map());
+  const [actionItemDialog, setActionItemDialog] = useState<{ open: boolean; prefill: string }>({ open: false, prefill: "" });
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -329,17 +331,28 @@ export default function GapDetectorPage() {
                                 </div>
                                 <p className="text-sm text-slate-700">{issue.description}</p>
                               </div>
-                              {!fix && (
+                              <div className="flex items-center gap-1.5 shrink-0">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="shrink-0 text-xs h-7"
-                                  onClick={() => generateFix(result.docId, idx, issue.description, issue.type, issue.section)}
+                                  className="text-xs h-7"
+                                  onClick={() => setActionItemDialog({ open: true, prefill: `[${ISSUE_TYPE_LABELS[issue.type] ?? issue.type}] ${result.title} — ${issue.section}: ${issue.description}` })}
                                 >
-                                  <Wand2 className="h-3 w-3" />
-                                  Generate Fix
+                                  <Plus className="h-3 w-3" />
+                                  Action Item
                                 </Button>
-                              )}
+                                {!fix && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7"
+                                    onClick={() => generateFix(result.docId, idx, issue.description, issue.type, issue.section)}
+                                  >
+                                    <Wand2 className="h-3 w-3" />
+                                    Generate Fix
+                                  </Button>
+                                )}
+                              </div>
                             </div>
 
                             {fix && !fix.applied && (
@@ -420,6 +433,12 @@ export default function GapDetectorPage() {
           </p>
         </div>
       )}
+
+      <CreateActionItemDialog
+        open={actionItemDialog.open}
+        onOpenChange={(open) => setActionItemDialog((s) => ({ ...s, open }))}
+        prefillText={actionItemDialog.prefill}
+      />
     </div>
   );
 }

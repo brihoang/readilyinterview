@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Loader2, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { GapPatchPanel } from "./GapPatchPanel";
+import { CreateActionItemDialog } from "@/components/shared/CreateActionItemDialog";
 import type { PolicyRecommendation, PolicyGap, GapSeverity } from "@/lib/store/types";
 
 const severityLabel: Record<GapSeverity, string> = {
@@ -58,6 +59,9 @@ function GapRow({ gap, index, regulationId, regulationTitle }: GapRowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [patch, setPatch] = useState<PatchData | null>(null);
+  const [actionItemOpen, setActionItemOpen] = useState(false);
+
+  const actionItemPrefill = `[${regulationTitle}] ${gap.requirement}: ${gap.suggestedAction}`;
 
   async function handleConfirmPatch() {
     setConfirmOpen(false);
@@ -116,17 +120,28 @@ function GapRow({ gap, index, regulationId, regulationTitle }: GapRowProps) {
         </p>
       </div>
 
-      {canPatch && fetchStatus === "idle" && (
+      <div className="flex items-center gap-2">
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-          onClick={() => setConfirmOpen(true)}
+          className="h-7 text-xs"
+          onClick={() => setActionItemOpen(true)}
         >
-          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-          Draft Patch
+          <Plus className="h-3.5 w-3.5 mr-1.5" />
+          Action Item
         </Button>
-      )}
+        {canPatch && fetchStatus === "idle" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+            Draft Patch
+          </Button>
+        )}
+      </div>
 
       {canPatch && fetchStatus === "loading" && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
@@ -150,6 +165,12 @@ function GapRow({ gap, index, regulationId, regulationTitle }: GapRowProps) {
       {fetchStatus === "done" && patch && (
         <GapPatchPanel patch={patch} regulationTitle={regulationTitle} />
       )}
+
+      <CreateActionItemDialog
+        open={actionItemOpen}
+        onOpenChange={setActionItemOpen}
+        prefillText={actionItemPrefill}
+      />
 
       {/* Confirmation dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
