@@ -276,8 +276,10 @@ class InMemoryStore {
       return chunk;
     });
 
-    // No matching chunk (fail case — no existing policy) — append new chunk
+    // No matching chunk — either already applied (patchedText already present) or genuinely missing
     if (!applied) {
+      const alreadyApplied = doc.chunks.some((c) => c.text.includes(patch.patchedText));
+      if (alreadyApplied) return doc; // Idempotent — don't double-apply
       updatedChunks.push({
         id: nanoid(),
         documentId: docId,
