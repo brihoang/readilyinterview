@@ -19,6 +19,7 @@ export async function POST(
     archivedAt: new Date().toISOString(),
   });
 
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: "audit_signed_off",
     actor: archivedBy ?? "Unknown",

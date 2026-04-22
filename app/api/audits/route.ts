@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     stakeholders: stakeholders ?? [],
   });
 
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: "audit_created",
     actor: createdBy ?? "Unknown",

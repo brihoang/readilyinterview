@@ -207,13 +207,11 @@ class InMemoryStore {
   private audits: Map<string, Audit> = new Map();
   private policyDocuments: Map<string, PolicyDocument> = new Map();
   private activities: ActivityEntry[] = [];
-  private activitiesLoaded = false;
   private federalDocuments: Map<string, FederalDocument> = new Map();
   private recommendations: Map<string, PolicyRecommendation> = new Map();
   private anticipatorLoaded = false;
   private anticipatorLoading = false;
   private actionItems: Map<string, ActionItem> = new Map();
-  private actionItemsLoaded = false;
 
   // Always reload audits from Redis — avoids stale data across multiple Vercel instances
   async ensureAuditsLoaded(): Promise<void> {
@@ -409,13 +407,10 @@ class InMemoryStore {
   // --- Activity Log ---
 
   async ensureActivitiesLoaded(): Promise<void> {
-    if (this.activitiesLoaded) return;
     try {
       this.activities = await kvLoadActivities();
-      this.activitiesLoaded = true;
-      console.log(`[store] Loaded ${this.activities.length} activity entries from Redis`);
     } catch (e) {
-      console.warn("[store] Redis activity load failed, will retry:", e);
+      console.warn("[store] Redis activity load failed:", e);
     }
   }
 
@@ -435,7 +430,6 @@ class InMemoryStore {
 
   async clearActivities(): Promise<void> {
     this.activities = [];
-    this.activitiesLoaded = false;
     await kvClearActivities();
   }
 
@@ -528,14 +522,12 @@ class InMemoryStore {
   // --- Action Items ---
 
   async ensureActionItemsLoaded(): Promise<void> {
-    if (this.actionItemsLoaded) return;
     try {
       const items = await kvLoadActionItems();
+      this.actionItems.clear();
       for (const item of items) this.actionItems.set(item.id, item);
-      this.actionItemsLoaded = true;
-      console.log(`[store] Loaded ${this.actionItems.size} action items from Redis`);
     } catch (e) {
-      console.warn("[store] Redis action items load failed, will retry:", e);
+      console.warn("[store] Redis action items load failed:", e);
     }
   }
 

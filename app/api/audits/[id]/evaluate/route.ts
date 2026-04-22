@@ -72,6 +72,7 @@ export async function POST(
 
         // Mark complete
         await store.updateAudit(params.id, { status: "complete" });
+        await store.ensureActivitiesLoaded();
         await store.addActivity({
           action: "audit_run",
           actor,

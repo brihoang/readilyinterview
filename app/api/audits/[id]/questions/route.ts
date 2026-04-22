@@ -16,6 +16,7 @@ export async function PUT(
     status: "ready",
   });
 
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: "questions_confirmed",
     actor: actor ?? "Unknown",

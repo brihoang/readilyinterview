@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     acceptedBy: acceptedBy ?? "Unknown",
   });
 
+  await store.ensureActivitiesLoaded();
   await store.addActivity({
     action: "policy_patched",
     actor: acceptedBy ?? "Unknown",
