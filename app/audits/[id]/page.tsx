@@ -34,6 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DEMO_USERS } from "@/lib/users";
+import { cn } from "@/lib/utils";
 
 const FRAMEWORKS: ComplianceFramework[] = [
   "HIPAA",
@@ -268,6 +270,9 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
     targetDate: audit.targetDate,
     notes: audit.notes,
   });
+  const [stakeholders, setStakeholders] = useState<string[]>(audit.stakeholders ?? []);
+  const [stakeholderSearch, setStakeholderSearch] = useState("");
+  const [stakeholderOpen, setStakeholderOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -275,39 +280,27 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
     await fetch(`/api/audits/${audit.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, stakeholders }),
     });
     setSaving(false);
     onSave();
   }
 
+  const stakeholderOptions = DEMO_USERS.filter(
+    (u) =>
+      u.displayName !== audit.createdBy &&
+      !stakeholders.includes(u.displayName) &&
+      u.displayName.toLowerCase().includes(stakeholderSearch.toLowerCase()),
+  );
+
   return (
     <div className="max-w-lg space-y-4">
-      {(audit.createdBy ||
-        (audit.stakeholders && audit.stakeholders.length > 0)) && (
-        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground pb-3 border-b">
-          {audit.createdBy && (
-            <div className="flex items-center gap-2">
-              <span>Created by</span>
-              <UserHoverCard name={audit.createdBy} />
-              <span>·</span>
-              <span>
-                {new Date(audit.createdAt).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-          )}
-          {audit.stakeholders && audit.stakeholders.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span>Stakeholders</span>
-              {audit.stakeholders.map((name) => (
-                <UserHoverCard key={name} name={name} />
-              ))}
-            </div>
-          )}
+      {audit.createdBy && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground pb-3 border-b">
+          <span>Created by</span>
+          <UserHoverCard name={audit.createdBy} />
+          <span>·</span>
+          <span>{new Date(audit.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
         </div>
       )}
       <div className="space-y-1.5">
@@ -355,6 +348,68 @@ function DetailsTab({ audit, onSave }: { audit: Audit; onSave: () => void }) {
             setForm((f) => ({ ...f, targetDate: e.target.value }))
           }
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Stakeholders</Label>
+        <div className="relative">
+          <Input
+            placeholder="Add stakeholder…"
+            value={stakeholderSearch}
+            onChange={(e) => { setStakeholderSearch(e.target.value); setStakeholderOpen(true); }}
+            onFocus={() => setStakeholderOpen(true)}
+            onBlur={() => setTimeout(() => setStakeholderOpen(false), 150)}
+            autoComplete="off"
+          />
+          {stakeholderOpen && stakeholderOptions.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-md">
+              {stakeholderOptions.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-accent text-left"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setStakeholders((prev) => [...prev, u.displayName]);
+                    setStakeholderSearch("");
+                    setStakeholderOpen(false);
+                  }}
+                >
+                  <span className={cn("h-6 w-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0", u.color)}>
+                    {u.initials}
+                  </span>
+                  <div>
+                    <p className="font-medium text-slate-800">{u.displayName}</p>
+                    <p className="text-xs text-muted-foreground">{u.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {stakeholders.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {stakeholders.map((name) => {
+              const u = DEMO_USERS.find((u) => u.displayName === name);
+              return (
+                <span key={name} className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-slate-100 border text-xs font-medium text-slate-700">
+                  {u && (
+                    <span className={cn("h-4 w-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center shrink-0", u.color)}>
+                      {u.initials}
+                    </span>
+                  )}
+                  {name}
+                  <button
+                    type="button"
+                    className="ml-0.5 text-muted-foreground hover:text-red-500"
+                    onClick={() => setStakeholders((prev) => prev.filter((n) => n !== name))}
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label>Notes</Label>
